@@ -2,5 +2,9 @@ spring:
   application:
     name: bff-service
 
+clients:
+  geoservice:
+    base-url: ${GEOSERVICE_BASE_URL:http://localhost:8083}
+
 server:
   port: 8080

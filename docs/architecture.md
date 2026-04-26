@@ -14,25 +14,19 @@ Construir un backend en Kotlin orientado a microservicios para una app tipo Goog
 
 ## Servicios propuestos
 ### BFF Service
-Punto de entrada para el frontend. Agrega respuestas de varios microservicios, adapta payloads y reduce la complejidad del cliente.
+Punto de entrada para el frontend. Agrega respuestas de varios microservicios, adapta payloads y reduce la complejidad del cliente. Puerto 8080.
 
 ### User Service
-Gestión de autenticación, sesiones, permisos, perfiles y administración básica de usuarios.
+Gestión de autenticación, sesiones, permisos, perfiles, roles y recuperación de acceso. Puerto 8081.
 
-### Report Service
-Registro de mascotas perdidas y encontradas, historial, fotografías y metadatos de los reportes.
+### Pet Service
+Registro y administración de mascotas, reportes perdidos/encontrados, historial y recepción de incidentes de entidades colaboradoras. Puerto 8082.
 
 ### GeoService
-Geolocalización, ubicación de reportes en el mapa y consultas espaciales.
+Geolocalización, ubicación de reportes en el mapa y consultas espaciales. Puerto 8083.
 
 ### Match Service
-Motor de coincidencias automáticas entre reportes de mascotas perdidas y encontradas.
-
-### Notification Service
-Envío de notificaciones push, correos o alertas internas.
-
-### Collaboration Service
-Participación de clínicas veterinarias, refugios y municipalidades como entidades colaboradoras.
+Motor de coincidencias automáticas entre reportes de mascotas perdidas y encontradas, incluyendo disparo de notificaciones. Puerto 8084.
 
 ## Módulos compartidos
 ### shared/contracts
@@ -47,6 +41,12 @@ Utilidades transversales, manejo de errores, logging y helpers reutilizables.
 - OSRM para cálculo de rutas.
 - Overpass API para consultas sobre puntos de interés y datos geoespaciales.
 
+## Estado actual de implementación
+- Integración base de OpenStreetMap disponible.
+- `geoservice` publica configuración de tiles, capas de mapa, reportes cercanos y enlace de navegación visual.
+- `bff-service` expone esos endpoints como fachada para el frontend.
+- Geocodificación, rutas calculadas, coincidencias avanzadas, notificaciones externas y gestión de fotos quedan para fases siguientes.
+
 ## Flujo de alto nivel
 1. El frontend llama al BFF.
 2. El BFF consulta servicios internos según el caso de uso.
@@ -56,11 +56,9 @@ Utilidades transversales, manejo de errores, logging y helpers reutilizables.
 ## Estructura base del repositorio
 - apps/bff-service
 - services/user-service
-- services/report-service
+- services/pet-service
 - services/geoservice
 - services/match-service
-- services/notification-service
-- services/collaboration-service
 - shared/common
 - shared/contracts
 - docs

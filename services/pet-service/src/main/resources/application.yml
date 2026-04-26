@@ -1,6 +1,6 @@
 spring:
   application:
-    name: geoservice
+    name: pet-service
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/sanosysalvos}
     username: ${DB_USERNAME:sanos}
@@ -15,10 +15,4 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
 server:
-  port: 8083
-
-geo:
-  osm:
-    tile-url-template: ${OSM_TILE_URL_TEMPLATE:https://tile.openstreetmap.org/{z}/{x}/{y}.png}
-    attribution: ${OSM_ATTRIBUTION:© OpenStreetMap contributors}
-    terms-url: ${OSM_TERMS_URL:https://www.openstreetmap.org/copyright}
+  port: 8082
