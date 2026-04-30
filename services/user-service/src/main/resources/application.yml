@@ -1,10 +1,13 @@
 spring:
   application:
     name: user-service
+  web:
+    resources:
+      add-mappings: false
 
 server:
   port: 8081
 
 xano:
-  base-url: ${XANO_BASE_URL:https://petfind.xano.io/api:v1}
-  api-key: ${XANO_API_KEY:}
+  api:
+    baseUrl: https://x8ki-letl-twmt.n7.xano.io

@@ -6,8 +6,8 @@ server:
   port: 8083
 
 xano:
-  base-url: ${XANO_BASE_URL:https://petfind.xano.io/api:v1}
-  api-key: ${XANO_API_KEY:}
+  api:
+    baseUrl: ${XANO_API_BASE_URL:https://x8ki-letl-twmt.n7.xano.io}
 
 geo:
   osm:
