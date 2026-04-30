@@ -203,39 +203,4 @@ class PetDomainController(
         message = "Collaborator deleted",
         data = petManagementService.deleteCollaborator(id),
     )
-
-    @GetMapping("/collaborators/list")
-    fun listCollaborators(): ApiEnvelope<List<CollaboratorProfile>> = ApiEnvelope(
-        success = true,
-        message = "Collaborators list",
-        data = petManagementService.listCollaborators(),
-    )
-
-    @GetMapping("/collaborators/details/{id}")
-    fun collaboratorDetails(@PathVariable id: String): ApiEnvelope<CollaboratorProfile> = ApiEnvelope(
-        success = true,
-        message = "Collaborator details",
-        data = petManagementService.getCollaborator(id),
-    )
-
-    @PostMapping("/collaborators/create")
-    fun createCollaborator(@RequestBody collaboratorProfile: CollaboratorProfile): ApiEnvelope<CollaboratorProfile> = ApiEnvelope(
-        success = true,
-        message = "Collaborator created",
-        data = petManagementService.createCollaborator(collaboratorProfile),
-    )
-
-    @PutMapping("/collaborators/update/{id}")
-    fun updateCollaborator(@PathVariable id: String, @RequestBody collaboratorProfile: CollaboratorProfile): ApiEnvelope<CollaboratorProfile> = ApiEnvelope(
-        success = true,
-        message = "Collaborator updated",
-        data = petManagementService.updateCollaborator(id, collaboratorProfile),
-    )
-
-    @DeleteMapping("/collaborators/delete/{id}")
-    fun deleteCollaborator(@PathVariable id: String): ApiEnvelope<String> = ApiEnvelope(
-        success = true,
-        message = "Collaborator deleted",
-        data = petManagementService.deleteCollaborator(id),
-    )
 }

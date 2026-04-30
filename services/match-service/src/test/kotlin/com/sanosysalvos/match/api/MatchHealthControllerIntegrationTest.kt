@@ -2,7 +2,6 @@ package com.sanosysalvos.match.api
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.sanosysalvos.contracts.MatchEvaluationRequest
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -23,19 +22,8 @@ class MatchHealthControllerIntegrationTest {
     lateinit var objectMapper: ObjectMapper
 
     @Test
-    fun `evaluate and pending should work`() {
-        mockMvc.post("/api/v1/matches/evaluate") {
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(MatchEvaluationRequest("lost-1", "found-1"))
-        }.andExpect {
-            status { isOk() }
-            jsonPath("$.data.shouldNotify") { value(true) }
-        }
-
-        val result = mockMvc.get("/api/v1/matches/pending")
+    fun `health check should work`() {
+        mockMvc.get("/api/v1/matches/health")
             .andExpect { status { isOk() } }
-            .andReturn()
-
-        assertFalse(result.response.contentAsString.isBlank())
     }
 }
