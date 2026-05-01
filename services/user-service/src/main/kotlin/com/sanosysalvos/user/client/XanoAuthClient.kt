@@ -8,6 +8,7 @@ import com.sanosysalvos.contracts.UserRole
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
+import org.springframework.core.ParameterizedTypeReference
 import java.util.UUID
 
 @Component
@@ -31,12 +32,12 @@ class XanoAuthClient(
     }
 
     fun register(request: UserRegistrationRequest): AuthResponse {
-        val xanoRequest = mapOf(
-            "full_name" to request.fullName,
-            "email" to request.email,
-            "phone" to request.phone,
-            "password" to request.password,
-        )
+            val xanoRequest = mapOf(
+                "full_name" to request.fullName,
+                "email" to request.email,
+                "phone" to request.phone,
+                "password" to request.password,
+            )
 
         val response = restClient.post()
             .uri("/register")
