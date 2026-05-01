@@ -121,16 +121,6 @@ Verificar que el servicio de usuarios está activo y disponible.
 }
 ```
 
-## Integración Xano
-
-Los endpoints de autenticación (login, register, logout, me, refresh) están integrados directamente con la API de Xano.
-
-**Base URL Xano:** `https://x8ki-letl-twmt.n7.xano.io/api:sanos-y-salvos-auth`
-
-La configuración se puede personalizar mediante la variable de entorno:
-```bash
-export XANO_AUTH_BASE_URL=https://tu-url-xano-aqui
-```
 
 Xano proporciona:
 - `POST /login` - Autenticación de usuario
