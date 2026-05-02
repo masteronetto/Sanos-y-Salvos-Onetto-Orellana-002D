@@ -165,3 +165,5 @@ Ver [docs/architecture.md](docs/architecture.md) para la propuesta completa de s
 Ver [docs/module-map.md](docs/module-map.md) para la relación entre requisitos, historias de usuario y módulos.
 
 Ver [docs/openstreetmap-integration.md](docs/openstreetmap-integration.md) para la integración base de mapa, capas y reportes cercanos con OpenStreetMap.
+
+Última actualización: se verificó la subida de cambios a GitHub desde la rama main.
