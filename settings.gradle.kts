@@ -24,6 +24,8 @@ dependencyResolutionManagement {
 
 rootProject.name = "Sanos y salvos V.2"
 
-// Only include Android modules for Android Studio
-// Spring Boot services are built separately via Docker
 include(":app")
+include(":apps:bff-service")
+include(":services:user-service")
+include(":shared:common")
+include(":shared:contracts")
