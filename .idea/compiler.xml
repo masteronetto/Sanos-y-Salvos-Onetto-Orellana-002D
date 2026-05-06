@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <bytecodeTargetLevel target="21" />
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="Sanos_y_salvos_V.2.apps.bff-service" options="-parameters" />
+      <module name="Sanos_y_salvos_V.2.apps.bff-service.main" options="-parameters" />
+      <module name="Sanos_y_salvos_V.2.apps.bff-service.test" options="-parameters" />
+      <module name="Sanos_y_salvos_V.2.services.user-service" options="-parameters" />
+      <module name="Sanos_y_salvos_V.2.services.user-service.main" options="-parameters" />
+      <module name="Sanos_y_salvos_V.2.services.user-service.test" options="-parameters" />
+    </option>
+  </component>
+</project>

@@ -1,0 +1,35 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: sanos-y-salvos-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  user-service:
+    build:
+      context: .
+      dockerfile: ./services/user-service/Dockerfile
+    container_name: sanos-y-salvos-user
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+    depends_on:
+      - rabbitmq
+
+  bff-service:
+    build:
+      context: .
+      dockerfile: ./apps/bff-service/Dockerfile
+    container_name: sanos-y-salvos-bff
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+    depends_on:
+      - rabbitmq
+
+networks:
+  default:
+    name: sanosysalvos-net
