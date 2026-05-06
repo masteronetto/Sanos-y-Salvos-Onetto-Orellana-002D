@@ -310,7 +310,7 @@ docker compose logs -f bff-service
 ```json
 {
   "fullName": "Test User",
-  "email": "test+local@example.com",
+  "email": "user+local@example.com",
   "password": "P@ssw0rd1",
   "role": "USER"
 }
