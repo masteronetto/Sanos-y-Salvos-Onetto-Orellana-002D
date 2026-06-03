@@ -1,482 +1,170 @@
-# Sanos y Salvos - Backend
+# Sanos y Salvos V2
 
-Backend completo de "Sanos y Salvos", aplicación para la gestión de mascotas perdidas y encontradas. Sistema modular con arquitectura de microservicios en **Kotlin + Spring Boot 3.4.5**, integrado con **Docker Compose** para orquestación automática de servicios.
+Aplicacion con arquitectura de microservicios (Kotlin + Spring Boot) y cliente Android (Jetpack Compose).
 
-**Tecnología Stack:**
-- Lenguaje: Kotlin 2.1.10
-- Framework: Spring Boot 3.4.5
-- Java: JDK 21
-- Base de datos: Xano (nube)
-- Message Queue: RabbitMQ
-- Contenedorización: Docker & Docker Compose
-- Build: Gradle 9.4.1
+Este README refleja el estado actual del proyecto y deja un flujo de trabajo claro para continuar pruebas.
 
-## 📋 Índice
+## Estado Actual
 
-- [Descripción General](#descripción-general)
-- [Servicios del Proyecto](#servicios-del-proyecto)
-- [Estructura del Código](#estructura-del-código)
-- [¿Cómo Funciona el Backend?](#cómo-funciona-el-backend)
-- [Ejecución Automática con Docker](#ejecución-automática-con-docker)
-- [Inicio Rápido](#inicio-rápido)
-- [Pruebas con Postman](#pruebas-con-postman)
-- [Integración con Frontend](#integración-con-frontend)
-- [Troubleshooting](#troubleshooting)
-- [Referencias](#referencias)
+### Backend
 
----
+Servicios levantados y verificados en Docker Compose:
 
-## Descripción General
+- bff-service: 8080
+- user-service: 8081
+- pet-service: 8082
+- geoservice: 8083
+- match-service: 8084
+- rabbitmq: 5672, 15672
 
-Este proyecto utiliza una arquitectura de **microservicios desacoplados** donde:
-- El **BFF (Backend for Frontend)** actúa como API Gateway centralizado
-- Cada **servicio de dominio** (usuario, mascota, geolocalización, matching) es independiente
-- **Docker Compose** orquesta automáticamente todos los servicios en contenedores
-- **Xano** es la base de datos autoritativa en la nube
-- **RabbitMQ** facilita comunicación asincrónica entre servicios
+Verificacion realizada con health checks locales en 8080-8084: respuesta 200 y status UP.
 
----
+### Android
 
-## Servicios del Proyecto
+- Build Android debug exitoso.
+- Correccion aplicada para compilacion con jlink en VS Code.
+- Login preparado para celular fisico:
+  - Se elimino la seleccion manual de IP en pantalla de login.
+  - Se agrego recuperacion automatica de host backend cuando falla conectividad.
+  - Se mejoro el comportamiento de timeout para failover mas rapido.
 
-| Servicio | Ruta | Puerto | Estado | Descripción |
-|----------|------|--------|--------|-------------|
-| **BFF Gateway** | `apps/bff-service` | 8080 | ✅ Activo | Orquesta y adapta respuestas de microservicios |
-| **User Service** | `services/user-service` | 8081 | ✅ Activo | Autenticación, registro y gestión de usuarios |
-| **Pet Service** | `services/pet-service` | 8082 | ⏳ Futuro | Gestión de mascotas y reportes |
-| **Geo Service** | `services/geoservice` | 8083 | ⏳ Futuro | Lógica geoespacial e integración con OSM |
-| **Match Service** | `services/match-service` | 8084 | ⏳ Futuro | Motor de coincidencias y notificaciones |
-| **RabbitMQ** | Docker | 5672, 15672 | ✅ Activo | Message broker para comunicación asincrónica |
+## Arquitectura
 
----
+- app: cliente Android.
+- apps/bff-service: gateway BFF.
+- services/user-service: autenticacion y usuarios.
+- services/pet-service: dominio de mascotas/reportes.
+- services/geoservice: geodatos y capas de mapa.
+- services/match-service: matching y reglas de coincidencia.
+- shared/common y shared/contracts: librerias compartidas.
 
-## Estructura del Código
+## Requisitos
 
-```
-SanosysalvosV2/
-├── app/                           # Módulo Android (Jetpack Compose)
-├── apps/
-│   └── bff-service/               # API Gateway - Puerto 8080
-├── services/
-│   └── user-service/              # Microservicio de autenticación - Puerto 8081
-├── shared/
-│   ├── common/                    # Utilidades transversales
-│   └── contracts/                 # DTOs y modelos compartidos
-├── docker-compose.yml             # ⭐ Orquestación de servicios
-├── build.gradle.kts               # Configuración raíz de Gradle
-├── settings.gradle.kts            # Módulos incluidos
-└── README.md
+- Docker Desktop.
+- Java 17 para Android build local.
+- Gradle Wrapper (incluido en el repositorio).
+
+## Inicio Rapido
+
+### 1) Levantar backend
+
+```powershell
+docker compose up -d --no-build
 ```
 
----
+Si necesitas reconstruir imagenes:
 
-## ¿Cómo Funciona el Backend?
-
-### Flujo de Autenticación (user-service - Puerto 8081)
-
-```
-Usuario (App Android)
-    ↓
-POST /api/v1/users/register
-    ↓
-BFF Gateway (8080)
-    ↓
-User Service (8081)
-    ↓
-Valida y llama a XanoAuthClient
-    ↓
-Xano (Nube) - Genera uid + token JWT
-    ↓
-Respuesta: { uid, role, token }
-```
-
-**Endpoints Activos:**
-- `POST /api/v1/users/register` - Registro de nuevo usuario
-- `POST /api/v1/users/login` - Autenticación
-- `GET /api/v1/users/health` - Health check del servicio
-
-**Roles:** `USER`, `ADMIN`, `COLLABORATOR`
-
-### Flujo de API Gateway (bff-service - Puerto 8080)
-
-El BFF actúa como **orquestador central** que delega a microservicios:
-
-```
-Cliente (App Android)
-    ↓
-GET /api/v1/bff/health
-GET /api/v1/bff/map/provider
-GET /api/v1/bff/map/layers
-GET /api/v1/bff/map/reports/nearby
-    ↓
-BFF Service (8080)
-    ↓
-Delega a:
-- User Service (8081)
-- Geo Service (8083)
-- Match Service (8084)
-    ↓
-Respuesta agregada y adaptada
-```
-
-### Base de Datos - Xano (Nube)
-
-**Xano es la fuente única de verdad (SSOT):**
-- ✅ Gestión de usuarios, autenticación y tokens JWT
-- ✅ Almacenamiento de mascotas y reportes
-- ✅ Índices únicos, transacciones, backups automáticos
-- ✅ Accesible desde cualquier ubicación (nube)
-
-**Endpoint:** `https://x8ki-letl-twmt.n7.xano.io/api:sanos-y-salvos-auth`
-
-### Message Queue - RabbitMQ
-
-**Propósito:**
-- Comunicación asincrónica entre microservicios
-- Desacoplamiento de servicios
-- Manejo robusto de fallos y reintentos
-
-**Acceso desde Docker:**
-- Puerto AMQP: `5672`
-- UI Management: `http://localhost:15672` (usuario: guest, contraseña: guest)
-
----
-
-## Ejecución Automática con Docker
-
-### ¿Cómo Funciona Docker en Este Proyecto?
-
-**Docker Compose automatiza completamente el ciclo de vida del backend:**
-
-#### 1. Build Multi-etapas (Dockerfile)
-
-- **Etapa 1 (Builder):** Compila el código Gradle dentro del contenedor
-  - Instala Gradle 9.4.1 y Java 21
-  - Descarga dependencias
-  - Compila el código fuente
-  - Genera JAR ejecutable (bootJar)
-
-- **Etapa 2 (Runtime):** Copia solo el JAR a una imagen JRE pequeña
-  - Base: `eclipse-temurin:21-jre` (~300MB)
-  - Copia JAR: `/app/app.jar`
-  - Resultado: Imagen optimizada de ~350MB
-
-**Ventajas:**
-- No requires Java instalado localmente
-- No depende de gradle.properties del host
-- Imagen final pequeña y lista para producción
-
-#### 2. Orquestación (docker-compose.yml)
-
-Define 3 servicios que se comunican en red `sanosysalvos-net`:
-
-```yaml
-services:
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    ports:
-      - "5672:5672"      # AMQP
-      - "15672:15672"    # Management UI
-    
-  user-service:
-    build:
-      context: .
-      dockerfile: services/user-service/Dockerfile
-    ports:
-      - "8081:8081"
-    environment:
-      - XANO_AUTH_BASE_URL=https://...
-    depends_on:
-      - rabbitmq
-    
-  bff-service:
-    build:
-      context: .
-      dockerfile: apps/bff-service/Dockerfile
-    ports:
-      - "8080:8080"
-    environment:
-      - GEOSERVICE_BASE_URL=http://geoservice:8083
-    depends_on:
-      - rabbitmq
-```
-
-#### 3. Variables de Entorno
-
-Cada servicio recibe automáticamente:
-- `XANO_AUTH_BASE_URL` - Para conectar con Xano
-- `GEOSERVICE_BASE_URL` - Para comunicación intra-servicios
-- Otras configuraciones específicas
-
-### ¿Manual o Automático?
-
-**✅ AUTOMÁTICO CON DOCKER**
-
-```bash
+```powershell
 docker compose up -d --build
 ```
 
-**Qué ocurre automáticamente:**
-1. ✓ Descarga imágenes base (gradle, jre, rabbitmq)
-2. ✓ Compila código Gradle dentro del contenedor
-3. ✓ Crea imágenes Docker de user-service y bff-service
-4. ✓ Levanta 3 contenedores simultáneamente
-5. ✓ Configura red interna automáticamente
-6. ✓ Los servicios se reinician automáticamente si fallan
-7. ✓ Todo listo en ~3-5 minutos
+### 2) Verificar contenedores
 
-**✅ MANUAL CON GRADLE** (Solo si quieres debugging local)
-
-```bash
-./gradlew :services:user-service:bootRun
-./gradlew :apps:bff-service:bootRun
+```powershell
+docker compose ps
 ```
 
-Requiere:
-- Java 21 instalado localmente
-- RabbitMQ corriendo por separado (`docker run -d -p 5672:5672 rabbitmq:3`)
-- Manejo manual de puertos y variables de entorno
+### 3) Verificar salud de servicios
 
----
-
-## Inicio Rápido
-
-### Requisito Previo
-- Docker Desktop instalado y corriendo
-
-### Paso 1: Iniciar Todos los Servicios
-
-```bash
-cd c:\Users\onett\AndroidStudioProjects\SanosysalvosV2
-docker compose up -d --build
-```
-
-**Salida esperada:**
-```
-✓ Container sanos-y-salvos-rabbitmq  Started (port 5672, 15672)
-✓ Container sanos-y-salvos-user      Started (port 8081)
-✓ Container sanos-y-salvos-bff       Started (port 8080)
-```
-
-### Paso 2: Verificar Estado
-
-```bash
-docker ps
-```
-
-Deberías ver 3 contenedores en estado `Up`.
-
-### Paso 3: Prueba Rápida de Salud
-
-```bash
-# user-service
-curl http://localhost:8081/api/v1/users/health
-
-# bff-service
-curl http://localhost:8080/api/v1/bff/health
-
-# RabbitMQ UI (usuario: guest, contraseña: guest)
-open http://localhost:15672
-```
-
-### Paso 4: Detener Servicios
-
-```bash
-docker compose down
-```
-
-### Paso 5: Ver Logs
-
-```bash
-# Logs de todos los servicios
-docker compose logs -f
-
-# Logs de un servicio específico
-docker compose logs -f user-service
-docker compose logs -f bff-service
-```
-
----
-
-## Pruebas con Postman
-
-### Base URL
-`http://localhost:8081/api/v1/users`
-
-### 1. Registrar Usuario
-
-**POST** `/register`
-
-```json
-{
-  "fullName": "Test User",
-  "email": "user+local@example.com",
-  "password": "P@ssw0rd1",
-  "role": "USER"
-}
-```
-
-**Respuesta esperada:**
-```json
-{
-  "success": true,
-  "message": "Registration successful",
-  "data": {
-    "uid": "U001",
-    "role": "USER",
-    "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+```powershell
+$ports = 8080,8081,8082,8083,8084
+foreach ($p in $ports) {
+  try {
+    $r = Invoke-WebRequest -Uri "http://localhost:$p/actuator/health" -TimeoutSec 8 -UseBasicParsing
+    Write-Output "PORT $p -> $($r.StatusCode) $($r.Content)"
+  } catch {
+    try {
+      $r2 = Invoke-WebRequest -Uri "http://localhost:$p/health" -TimeoutSec 8 -UseBasicParsing
+      Write-Output "PORT $p -> $($r2.StatusCode) $($r2.Content)"
+    } catch {
+      Write-Output "PORT $p -> FAIL $($_.Exception.Message)"
+    }
   }
 }
 ```
 
-### 2. Login
+## Android: Build e Instalacion
 
-**POST** `/login`
+### Build APK debug
 
-```json
-{
-  "email": "test+local@example.com",
-  "password": "P@ssw0rd1"
-}
+```powershell
+.\gradlew :app:assembleDebug --no-daemon
 ```
 
-### 3. Health Check
+APK generado en:
 
-**GET** `/health`
+- app/build/outputs/apk/debug/app-debug.apk
 
-```json
-{
-  "service": "user-service",
-  "status": "up"
-}
-```
+### Nota para pruebas en celular fisico
 
-### 4. Registrar Colaborador (Clínica Veterinaria)
-
-**POST** `/register`
-
-```json
-{
-  "fullName": "Clínica San Antón",
-  "email": "clinica@sananton.com",
-  "password": "P@ssw0rd1",
-  "role": "COLLABORATOR",
-  "collaboratorType": "VETERINARY_CLINIC"
-}
-```
-
----
-
-## Integración con Frontend
-
-### Conectar desde App Android
-
-**Desde el emulador:**
-- Host: `10.0.2.2` (alias de localhost en emulador)
-- Puerto: `8081` para user-service, `8080` para BFF
-
-**URLs de conexión:**
-```kotlin
-// User Service (Autenticación)
-http://10.0.2.2:8081/api/v1/users/register
-http://10.0.2.2:8081/api/v1/users/login
-
-// BFF Service (API Gateway)
-http://10.0.2.2:8080/api/v1/bff/health
-http://10.0.2.2:8080/api/v1/bff/map/*
-```
-
-**Actualiza en RetrofitClient.kt:**
-```kotlin
-const val BASE_URL = "http://10.0.2.2:8081/api/v1/users/"
-```
-
----
+- El telefono no puede usar 10.0.2.2 (eso es solo emulador).
+- La app ahora intenta resolver host backend automaticamente ante fallos de conexion.
+- Aun debes cumplir condiciones de red:
+  - PC y celular en la misma red (o usar ADB reverse por USB).
+  - Firewall de Windows permitiendo puertos 8080 y 8081.
+  - Contenedores realmente levantados.
 
 ## Troubleshooting
 
-### ❌ Error: "Docker daemon not running"
+### Error de jlink al compilar Android
 
-**Solución:** Inicia Docker Desktop
+Sintoma comun:
+
+- jlink executable ... redhat.java ... does not exist
+
+Accion aplicada en workspace:
+
+- .vscode/settings.json forzado a JBR de Android Studio para Java LS e import/Gradle.
+
+Si reaparece en UI de VS Code:
+
+1. Reload Window en VS Code.
+2. Reintentar build con Gradle Wrapper.
+
+### Login tarda y luego falla por timeout
+
+Causas mas probables:
+
+- Backend no levantado.
+- Red distinta entre celular y PC.
+- Firewall bloqueando 8080/8081.
+
+Validar primero backend local con el bloque de health checks de este README.
+
+## Politica de Archivos Generados
+
+No se deben subir artefactos generados de build (por ejemplo carpetas bin y build), porque:
+
+- no son fuente de verdad,
+- ensucian PRs con ruido,
+- aumentan conflictos y tamano del repositorio.
+
+El repositorio debe contener codigo fuente, configuraciones y scripts reproducibles.
+
+## Comandos Utiles
 
 ```powershell
-Start-Process "C:\Program Files\Docker\Docker\Docker.exe"
-```
-
----
-
-### ❌ Error: "Port 8081 already in use"
-
-```powershell
-# Encontrar proceso
-netstat -ano | findstr ":8081"
-
-# Matar proceso (reemplaza PID)
-taskkill /PID 12345 /F
-
-# O cambiar puerto en docker-compose.yml
-```
-
----
-
-### ❌ Error: "Connection refused at localhost:8081"
-
-```bash
-# Verificar que contenedores están corriendo
-docker ps
-
-# Ver logs
-docker compose logs user-service
-
-# Esperar 10-15 segundos post-startup para que el servicio esté listo
-```
-
----
-
-### ❌ Error: "Duplicate record detected"
-
-**Causa:** Email ya existe en Xano
-
-**Solución:** Usa otro email:
-```
-test+$(date +%s)@example.com
-```
-
----
-
-## Comandos Útiles
-
-```bash
-# Construir imágenes sin levantar servicios
-docker compose build --no-cache
-
-# Rebuild y restart
+# apagar stack
 docker compose down
-docker compose up -d --build
 
-# Ver recursos usados
-docker stats
+# logs de todos los servicios
+docker compose logs -f
 
-# Entrar a un contenedor
-docker exec -it sanos-y-salvos-user bash
+# logs de un servicio
+docker compose logs -f user-service
 
-# Limpiar todo (contenedores + volúmenes)
-docker compose down -v
-
-# Ver logs completos
-docker compose logs user-service --tail=100
+# detener daemons gradle
+.\gradlew --stop
 ```
 
+## Proximo Paso (Sesion Siguiente)
+
+- Ejecutar pruebas funcionales completas desde celular:
+  - login,
+  - flujo admin,
+  - carga de mapa,
+  - llamadas BFF y servicios de dominio.
+
 ---
 
-## Referencias
-
-- **Xano API Docs:** https://x8ki-letl-twmt.n7.xano.io/api:workspace:t1gH6k-I
-- **Spring Boot:** https://spring.io/projects/spring-boot
-- **Docker Compose:** https://docs.docker.com/compose/
-- **Kotlin:** https://kotlinlang.org/
-
----
-
-**Última actualización:** Mayo 2026
-**Versión:** 1.0.0 - Docker Compose Edition
+Ultima actualizacion: 2026-06-03
