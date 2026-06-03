@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: geoservice
+
+server:
+  port: 8083

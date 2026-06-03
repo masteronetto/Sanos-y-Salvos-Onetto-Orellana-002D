@@ -1,0 +1,25 @@
+# VCS and IDE
+.git
+.github
+.idea
+.vscode
+
+# Build outputs and caches
+**/build
+**/bin
+.gradle
+.kotlinc
+.kotlin
+
+# Local machine files
+local.properties
+*.iml
+
+# Logs and reports
+*.log
+build.log
+**/reports
+
+# OS junk
+.DS_Store
+Thumbs.db

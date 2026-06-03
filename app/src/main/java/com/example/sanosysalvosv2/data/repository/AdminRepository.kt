@@ -1,11 +1,11 @@
 package com.example.sanosysalvosv2.data.repository
 
 import com.example.sanosysalvosv2.data.api.AdminApi
-import com.example.sanosysalvosv2.data.api.XanoRetrofitClient
+import com.example.sanosysalvosv2.data.api.RetrofitClient
 import com.example.sanosysalvosv2.model.AdminUserSummary
 
 class AdminRepository {
-    private val api: AdminApi = XanoRetrofitClient.retrofit.create(AdminApi::class.java)
+    private val api: AdminApi = RetrofitClient.retrofit.create(AdminApi::class.java)
 
     suspend fun listRegisteredUsers(token: String): List<AdminUserSummary> {
         val response = api.listUsers(authHeader = "Bearer $token")
