@@ -2,15 +2,17 @@ package com.example.sanosysalvosv2.data.repository
 
 import com.example.sanosysalvosv2.data.api.BffRetrofitClient
 import com.example.sanosysalvosv2.data.api.MapApi
+import com.example.sanosysalvosv2.data.config.NetworkConfig
 import com.example.sanosysalvosv2.model.MapLayer
 import com.example.sanosysalvosv2.model.NearbyReportsResponse
 import com.example.sanosysalvosv2.model.TileProviderConfig
+import java.io.IOException
 
 class MapRepository {
-    private val api: MapApi = BffRetrofitClient.retrofit.create(MapApi::class.java)
+    private fun api(): MapApi = BffRetrofitClient.retrofit().create(MapApi::class.java)
 
     suspend fun provider(): TileProviderConfig {
-        val response = api.provider()
+        val response = withRecovery { it.provider() }
         if (!response.isSuccessful) {
             throw Exception("Provider fallido: ${response.code()} - ${response.message()}")
         }
@@ -18,7 +20,7 @@ class MapRepository {
     }
 
     suspend fun layers(): List<MapLayer> {
-        val response = api.layers()
+        val response = withRecovery { it.layers() }
         if (!response.isSuccessful) {
             throw Exception("Layers fallido: ${response.code()} - ${response.message()}")
         }
@@ -26,10 +28,31 @@ class MapRepository {
     }
 
     suspend fun nearbyReports(latitude: Double, longitude: Double, radiusMeters: Int): NearbyReportsResponse {
-        val response = api.nearbyReports(latitude = latitude, longitude = longitude, radiusMeters = radiusMeters)
+        val response = withRecovery { it.nearbyReports(latitude = latitude, longitude = longitude, radiusMeters = radiusMeters) }
         if (!response.isSuccessful) {
             throw Exception("Nearby reports fallido: ${response.code()} - ${response.message()}")
         }
         return response.body() ?: throw Exception("Nearby reports sin contenido")
+    }
+
+    private suspend fun <T> withRecovery(call: suspend (MapApi) -> retrofit2.Response<T>): retrofit2.Response<T> {
+        return try {
+            call(api())
+        } catch (e: Exception) {
+            if (!isConnectivityError(e)) throw e
+            val recovered = NetworkConfig.recoverBackendHost()
+            if (recovered == null) {
+                throw Exception("No se pudo conectar al backend automaticamente. Verifica puertos 8080/8081 y red local.")
+            }
+            call(api())
+        }
+    }
+
+    private fun isConnectivityError(e: Exception): Boolean {
+        if (e is IOException) return true
+        val message = e.message?.lowercase().orEmpty()
+        return message.contains("failed to connect") ||
+            message.contains("timeout") ||
+            message.contains("unable to resolve host")
     }
 }
