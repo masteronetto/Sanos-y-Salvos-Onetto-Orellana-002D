@@ -13,7 +13,9 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestTemplate
+import org.springframework.web.client.exchange
 import org.springframework.web.client.postForObject
+import org.slf4j.LoggerFactory
 
 @Suppress("UNCHECKED_CAST")
 @Component
@@ -21,6 +23,7 @@ class XanoUserClient(
     private val restTemplate: RestTemplate,
     @Value("\${xano.api.baseUrl:https://x8ki-letl-twmt.n7.xano.io}") val baseUrl: String,
 ) {
+    private val logger = LoggerFactory.getLogger(XanoUserClient::class.java)
     
     fun register(request: UserRegistrationRequest): AuthResponse {
         if (request.role == UserRole.COLLABORATOR && request.collaboratorType == null) {
@@ -72,15 +75,45 @@ class XanoUserClient(
     }
 
     fun listUsers(token: String): List<UserProfile> {
-        val url = "$baseUrl/api:sanos-y-salvos-auth/users/list"
         val headers = HttpHeaders().apply {
             add("Authorization", "Bearer $token")
             contentType = MediaType.APPLICATION_JSON
         }
         val entity = HttpEntity<Void>(headers)
-        @Suppress("UNCHECKED_CAST")
-        val response = restTemplate.exchange(url, HttpMethod.GET, entity, List::class.java).body as? List<Map<String, Any>>
-        return response?.map { parseUserProfile(it) } ?: emptyList()
+
+        val candidateUrls = listOf(
+            "$baseUrl/api:sanos-y-salvos-auth/users/list",
+            "$baseUrl/api:sanos-y-salvos-auth/users",
+        )
+
+        candidateUrls.forEach { url ->
+            try {
+                val response = restTemplate.exchange<Any>(url, HttpMethod.GET, entity).body
+                val users = parseUsersList(response)
+                if (users.isNotEmpty()) {
+                    return users
+                }
+            } catch (e: Exception) {
+                logger.warn("listUsers attempt failed for {}: {}", url, e.message)
+            }
+        }
+
+        logger.warn("Could not fetch users from Xano using known endpoints; returning empty list")
+        return emptyList()
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun parseUsersList(response: Any?): List<UserProfile> {
+        val listData = when (response) {
+            is List<*> -> response.filterIsInstance<Map<String, Any>>()
+            is Map<*, *> -> {
+                val data = response["data"]
+                if (data is List<*>) data.filterIsInstance<Map<String, Any>>() else emptyList()
+            }
+            else -> emptyList()
+        }
+
+        return listData.map { parseUserProfile(it) }
     }
 
     fun updateUser(id: String, profile: UserProfile, token: String): UserProfile {
