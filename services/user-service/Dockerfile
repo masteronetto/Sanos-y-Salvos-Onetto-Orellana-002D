@@ -1,7 +1,7 @@
 FROM gradle:9.4.1-jdk21 AS builder
 WORKDIR /project
 COPY . /project
-RUN gradle :services:user-service:clean :services:user-service:bootJar -x test --no-daemon
+RUN gradle :services:user-service:bootJar -x test --no-daemon
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
