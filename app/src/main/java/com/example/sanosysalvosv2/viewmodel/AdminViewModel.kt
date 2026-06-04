@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.sanosysalvosv2.data.repository.AdminRepository
 import com.example.sanosysalvosv2.data.session.SessionStore
 import com.example.sanosysalvosv2.model.AdminUserSummary
+import com.example.sanosysalvosv2.util.ErrorHandler
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -37,7 +38,7 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 users = repository.listRegisteredUsers(token)
             } catch (e: Exception) {
-                error = e.message ?: "No se pudo cargar usuarios"
+                error = ErrorHandler.getErrorMessage(e)
             } finally {
                 loading = false
             }

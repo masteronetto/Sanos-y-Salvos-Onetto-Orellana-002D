@@ -9,6 +9,7 @@ import com.example.sanosysalvosv2.data.repository.MapRepository
 import com.example.sanosysalvosv2.model.MapLayer
 import com.example.sanosysalvosv2.model.NearbyReportMarker
 import com.example.sanosysalvosv2.model.TileProviderConfig
+import com.example.sanosysalvosv2.util.ErrorHandler
 import kotlinx.coroutines.launch
 
 class MapViewModel : ViewModel() {
@@ -47,7 +48,7 @@ class MapViewModel : ViewModel() {
                     radiusMeters = radiusMeters,
                 ).markers
             } catch (e: Exception) {
-                error = e.message ?: "No se pudo cargar mapa"
+                error = ErrorHandler.getErrorMessage(e)
             } finally {
                 loading = false
             }

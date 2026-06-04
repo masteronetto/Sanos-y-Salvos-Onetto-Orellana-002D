@@ -5,8 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStoreFile
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -16,10 +15,10 @@ private val TOKEN_KEY = stringPreferencesKey("auth_token")
 private val USER_ID_KEY = stringPreferencesKey("auth_user_id")
 private val USER_ROLE_KEY = stringPreferencesKey("auth_user_role")
 
+private val Context.sessionDataStore by preferencesDataStore(name = "session_store")
+
 class SessionStore(context: Context) {
-    private val dataStore = PreferenceDataStoreFactory.create(
-        produceFile = { context.preferencesDataStoreFile("session_store") },
-    )
+    private val dataStore = context.sessionDataStore
 
     val tokenFlow: Flow<String?> = dataStore.data
         .catch {
