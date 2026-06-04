@@ -7,9 +7,9 @@ android {
     namespace = "com.example.sanosysalvosv2"
     compileSdk = 36
 
-    // 10.0.2.2 works only for emulator. For real devices, set LOCAL_BACKEND_HOST in gradle.properties
-    // (for example 192.168.1.20 where your backend is running).
-    val backendHost = providers.gradleProperty("LOCAL_BACKEND_HOST").orElse("10.0.2.2").get()
+    // Set a full backend URL here for your active API provider.
+    // Emulator default keeps local development working.
+    val backendBaseUrl = providers.gradleProperty("BFF_BASE_URL").orElse("http://10.0.2.2:8080/").get()
 
     defaultConfig {
         applicationId = "com.example.sanosysalvosv2"
@@ -17,8 +17,7 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-        buildConfigField("String", "API_BASE_URL", "\"http://$backendHost:8081/\"")
-        buildConfigField("String", "BFF_BASE_URL", "\"http://$backendHost:8080/\"")
+        buildConfigField("String", "BFF_BASE_URL", "\"$backendBaseUrl\"")
         buildConfigField("String", "XANO_BASE_URL", "\"https://x8ki-letl-twmt.n7.xano.io/\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

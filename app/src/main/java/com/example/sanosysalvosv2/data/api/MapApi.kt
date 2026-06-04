@@ -8,13 +8,13 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface MapApi {
-    @GET("api/v1/bff/map/provider")
+    @GET("/api:maps/provider")
     suspend fun provider(): Response<TileProviderConfig>
 
-    @GET("api/v1/bff/map/layers")
+    @GET("/api:maps/layers")
     suspend fun layers(): Response<List<MapLayer>>
 
-    @GET("api/v1/bff/map/reports/nearby")
+    @GET("/api:maps/reports/nearby")
     suspend fun nearbyReports(
         @Query("latitude") latitude: Double,
         @Query("longitude") longitude: Double,

@@ -1,15 +1,13 @@
 package com.example.sanosysalvosv2.data.repository
 
-import com.example.sanosysalvosv2.data.api.AuthApi
-import com.example.sanosysalvosv2.data.api.RetrofitClient
-import com.example.sanosysalvosv2.data.config.NetworkConfig
+import com.example.sanosysalvosv2.data.api.BffAuthApi
+import com.example.sanosysalvosv2.data.api.BffRetrofitClient
 import com.example.sanosysalvosv2.model.AuthResponse
 import com.example.sanosysalvosv2.model.LoginRequest
 import com.example.sanosysalvosv2.model.RegisterRequest
-import java.io.IOException
 
 class AuthRepository {
-    private fun api(): AuthApi = RetrofitClient.retrofit().create(AuthApi::class.java)
+    private fun bffApi(): BffAuthApi = BffRetrofitClient.retrofit().create(BffAuthApi::class.java)
 
     suspend fun register(request: RegisterRequest): AuthResponse {
         val response = callWithRecovery { it.register(request) }
@@ -17,12 +15,7 @@ class AuthRepository {
             throw Exception("Registro fallido: ${response.code()} - ${response.message()}")
         }
 
-        val envelope = response.body() ?: throw Exception("Respuesta vacia del servidor")
-        if (!envelope.success) {
-            throw Exception(envelope.message ?: "No se pudo registrar")
-        }
-
-        return envelope.data ?: throw Exception("No se recibieron datos de sesion")
+        return mapToAuthResponse(response.body() ?: throw Exception("Respuesta vacia del servidor"))
     }
 
     suspend fun login(request: LoginRequest): AuthResponse {
@@ -31,34 +24,38 @@ class AuthRepository {
             throw Exception("Login fallido: ${response.code()} - ${response.message()}")
         }
 
-        val envelope = response.body() ?: throw Exception("Respuesta vacia del servidor")
-        if (!envelope.success) {
-            throw Exception(envelope.message ?: "No se pudo iniciar sesion")
-        }
-
-        return envelope.data ?: throw Exception("No se recibieron datos de sesion")
+        return mapToAuthResponse(response.body() ?: throw Exception("Respuesta vacia del servidor"))
     }
 
-    private suspend fun callWithRecovery(call: suspend (AuthApi) -> retrofit2.Response<com.example.sanosysalvosv2.model.ApiEnvelope<AuthResponse>>): retrofit2.Response<com.example.sanosysalvosv2.model.ApiEnvelope<AuthResponse>> {
-        return try {
-            call(api())
-        } catch (e: Exception) {
-            if (!isConnectivityError(e)) throw e
-
-            val recovered = NetworkConfig.recoverBackendHost()
-            if (recovered == null) {
-                throw Exception("No se pudo conectar al backend automaticamente. Verifica que los puertos 8080 y 8081 esten expuestos en tu PC y en la misma red.")
-            }
-
-            call(api())
-        }
+    private suspend fun callWithRecovery(
+        call: suspend (BffAuthApi) -> retrofit2.Response<Map<String, Any?>>,
+    ): retrofit2.Response<Map<String, Any?>> {
+        return call(bffApi())
     }
 
-    private fun isConnectivityError(e: Exception): Boolean {
-        if (e is IOException) return true
-        val message = e.message?.lowercase().orEmpty()
-        return message.contains("failed to connect") ||
-            message.contains("timeout") ||
-            message.contains("unable to resolve host")
+    private fun mapToAuthResponse(raw: Map<String, Any?>): AuthResponse {
+        val data = raw["data"] as? Map<*, *>
+
+        val token = (data?.get("token") as? String)
+            ?: raw["token"] as? String
+            ?: raw["auth_token"] as? String
+            ?: throw Exception("No se recibio token de sesion")
+
+        val userId = (data?.get("uid") as? String)
+            ?: (data?.get("id") as? String)
+            ?: (data?.get("userId") as? String)
+            ?: raw["uid"] as? String
+            ?: raw["id"] as? String
+            ?: raw["userId"] as? String
+            ?: raw["user_id"] as? String
+            ?: ""
+
+        val role = ((data?.get("role") as? String) ?: (raw["role"] as? String) ?: "USER").uppercase()
+
+        return AuthResponse(
+            userId = userId,
+            role = role,
+            token = token,
+        )
     }
 }

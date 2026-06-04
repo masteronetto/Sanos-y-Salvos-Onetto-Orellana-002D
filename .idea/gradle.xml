@@ -10,6 +10,16 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/apps" />
+            <option value="$PROJECT_DIR$/apps/bff-service" />
+            <option value="$PROJECT_DIR$/services" />
+            <option value="$PROJECT_DIR$/services/geoservice" />
+            <option value="$PROJECT_DIR$/services/match-service" />
+            <option value="$PROJECT_DIR$/services/pet-service" />
+            <option value="$PROJECT_DIR$/services/user-service" />
+            <option value="$PROJECT_DIR$/shared" />
+            <option value="$PROJECT_DIR$/shared/common" />
+            <option value="$PROJECT_DIR$/shared/contracts" />
           </set>
         </option>
       </GradleProjectSettings>

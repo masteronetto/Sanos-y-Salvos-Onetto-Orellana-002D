@@ -1,7 +1,6 @@
 package com.example.sanosysalvosv2.data.api
 
 import com.example.sanosysalvosv2.BuildConfig
-import com.example.sanosysalvosv2.data.config.NetworkConfig
 import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -19,7 +18,7 @@ object BffRetrofitClient {
         .build()
 
     fun retrofit(): Retrofit {
-        val baseUrl = NetworkConfig.bffBaseUrl().ifBlank { BuildConfig.BFF_BASE_URL }
+        val baseUrl = BuildConfig.BFF_BASE_URL
         return retrofitCache.getOrPut(baseUrl) {
             Retrofit.Builder()
                 .baseUrl(baseUrl)

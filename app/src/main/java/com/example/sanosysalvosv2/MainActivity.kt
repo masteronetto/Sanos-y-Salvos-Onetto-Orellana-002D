@@ -13,7 +13,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.sanosysalvosv2.data.config.NetworkConfig
 import com.example.sanosysalvosv2.ui.screens.AdminDashboardScreen
 import com.example.sanosysalvosv2.ui.screens.HomeScreen
 import com.example.sanosysalvosv2.ui.screens.LoginScreen
@@ -30,7 +29,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        NetworkConfig.init(applicationContext)
         enableEdgeToEdge()
         setContent {
             SanosYSalvosV2Theme {
