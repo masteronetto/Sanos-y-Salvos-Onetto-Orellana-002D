@@ -8,6 +8,15 @@
       <module name="Sanos_y_salvos_V.2.apps.bff-service" options="-parameters" />
       <module name="Sanos_y_salvos_V.2.apps.bff-service.main" options="-parameters" />
       <module name="Sanos_y_salvos_V.2.apps.bff-service.test" options="-parameters" />
+      <module name="Sanos_y_salvos_V.2.services.geoservice" options="-parameters" />
+      <module name="Sanos_y_salvos_V.2.services.geoservice.main" options="-parameters" />
+      <module name="Sanos_y_salvos_V.2.services.geoservice.test" options="-parameters" />
+      <module name="Sanos_y_salvos_V.2.services.match-service" options="-parameters" />
+      <module name="Sanos_y_salvos_V.2.services.match-service.main" options="-parameters" />
+      <module name="Sanos_y_salvos_V.2.services.match-service.test" options="-parameters" />
+      <module name="Sanos_y_salvos_V.2.services.pet-service" options="-parameters" />
+      <module name="Sanos_y_salvos_V.2.services.pet-service.main" options="-parameters" />
+      <module name="Sanos_y_salvos_V.2.services.pet-service.test" options="-parameters" />
       <module name="Sanos_y_salvos_V.2.services.user-service" options="-parameters" />
       <module name="Sanos_y_salvos_V.2.services.user-service.main" options="-parameters" />
       <module name="Sanos_y_salvos_V.2.services.user-service.test" options="-parameters" />

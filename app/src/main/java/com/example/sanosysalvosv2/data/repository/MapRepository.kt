@@ -2,11 +2,9 @@ package com.example.sanosysalvosv2.data.repository
 
 import com.example.sanosysalvosv2.data.api.BffRetrofitClient
 import com.example.sanosysalvosv2.data.api.MapApi
-import com.example.sanosysalvosv2.data.config.NetworkConfig
 import com.example.sanosysalvosv2.model.MapLayer
 import com.example.sanosysalvosv2.model.NearbyReportsResponse
 import com.example.sanosysalvosv2.model.TileProviderConfig
-import java.io.IOException
 
 class MapRepository {
     private fun api(): MapApi = BffRetrofitClient.retrofit().create(MapApi::class.java)
@@ -36,23 +34,6 @@ class MapRepository {
     }
 
     private suspend fun <T> withRecovery(call: suspend (MapApi) -> retrofit2.Response<T>): retrofit2.Response<T> {
-        return try {
-            call(api())
-        } catch (e: Exception) {
-            if (!isConnectivityError(e)) throw e
-            val recovered = NetworkConfig.recoverBackendHost()
-            if (recovered == null) {
-                throw Exception("No se pudo conectar al backend automaticamente. Verifica puertos 8080/8081 y red local.")
-            }
-            call(api())
-        }
-    }
-
-    private fun isConnectivityError(e: Exception): Boolean {
-        if (e is IOException) return true
-        val message = e.message?.lowercase().orEmpty()
-        return message.contains("failed to connect") ||
-            message.contains("timeout") ||
-            message.contains("unable to resolve host")
+        return call(api())
     }
 }

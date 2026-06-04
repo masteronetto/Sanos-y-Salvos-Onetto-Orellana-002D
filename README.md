@@ -1,32 +1,37 @@
 # Sanos y Salvos V2
 
-Aplicacion con arquitectura de microservicios (Kotlin + Spring Boot) y cliente Android (Jetpack Compose).
+Aplicación con arquitectura de microservicios (Kotlin + Spring Boot) y cliente Android (Jetpack Compose).
 
-Este README refleja el estado actual del proyecto y deja un flujo de trabajo claro para continuar pruebas.
+El cliente Android consume directamente la API de Xano (x8ki-letl-twmt.n7.xano.io) eliminando la necesidad de infraestructura de tuneles.
 
 ## Estado Actual
 
-### Backend
+### Backend API
 
-Servicios levantados y verificados en Docker Compose:
+El proyecto ahora usa **Xano** como backend API centralizado:
+- Endpoint base: `https://x8ki-letl-twmt.n7.xano.io/`
+- Endpoints disponibles:
+  - Auth: `/api:sanos-y-salvos-auth/{login|register}`
+  - Users: `/api:sanos-y-salvos-users/list`
+  - Maps: `/api:maps/{provider|layers|reports/nearby}`
 
+### Android Client
+
+- Build compilado exitosamente con rutas Xano correctas
+- Cliente Android consume directamente endpoints Xano (sin BFF intermediario)
+- Retrofit configurado con rutas HTTP válidas (`/api:sanos-y-salvos-auth/...`)
+- AuthRepository con mapeo flexible para respuestas Xano
+- Listo para pruebas en celular físico desde Android Studio
+
+### Backend Local (Opcional)
+
+Los servicios locales en Docker Compose están disponibles pero NO son requeridos para funcionar el cliente Android. Se usan solo para desarrollo backend:
 - bff-service: 8080
 - user-service: 8081
 - pet-service: 8082
 - geoservice: 8083
 - match-service: 8084
 - rabbitmq: 5672, 15672
-
-Verificacion realizada con health checks locales en 8080-8084: respuesta 200 y status UP.
-
-### Android
-
-- Build Android debug exitoso.
-- Correccion aplicada para compilacion con jlink en VS Code.
-- Login preparado para celular fisico:
-  - Se elimino la seleccion manual de IP en pantalla de login.
-  - Se agrego recuperacion automatica de host backend cuando falla conectividad.
-  - Se mejoro el comportamiento de timeout para failover mas rapido.
 
 ## Arquitectura
 
@@ -40,69 +45,78 @@ Verificacion realizada con health checks locales en 8080-8084: respuesta 200 y s
 
 ## Requisitos
 
-- Docker Desktop.
-- Java 17 para Android build local.
-- Gradle Wrapper (incluido en el repositorio).
+- Android Studio (con Android SDK para emulador o dispositivo físico)
+- Java 17
+- Gradle Wrapper (incluido)
+- Conexión a internet (para acceder a Xano API)
 
-## Inicio Rapido
+## Inicio Rápido: Pruebas en Android Studio
 
-### 1) Levantar backend
-
-```powershell
-docker compose up -d --no-build
-```
-
-Si necesitas reconstruir imagenes:
+### 1) Abrir proyecto en Android Studio
 
 ```powershell
-docker compose up -d --build
+# Desde el directorio del proyecto
+start . # Abre el proyecto en Android Studio
 ```
 
-### 2) Verificar contenedores
+### 2) Configurar emulador o dispositivo
+
+**Emulador**: Android Studio → Device Manager → Crear/Iniciar emulador  
+**Dispositivo físico**: Conectar por USB, habilitar "USB Debugging" en Settings > Developer Options
+
+### 3) Ejecutar la aplicación
+
+En Android Studio:
+1. Select Run > Run 'app' o presiona Shift+F10
+2. Seleccionar target (emulador o dispositivo)
+3. Esperar a que compile e instale
+
+### 4) Testear flujo de login
+
+- Email: `admin+local@example.com`
+- Password: `P@ssw0rd1`
+
+Debería ver:
+1. Pantalla de login
+2. Conexión exitosa a Xano (`/api:sanos-y-salvos-auth/login`)
+3. Acceso a panel de admin o pantalla de maps
+
+## Backend Local (Opcional)
+
+Los servicios microservicios en Docker Compose NO son requeridos para el client Android, ya que consume Xano directamente. Para desarrollo backend:
 
 ```powershell
-docker compose ps
+docker compose up -d
 ```
 
-### 3) Verificar salud de servicios
+Verifica salud:
 
 ```powershell
 $ports = 8080,8081,8082,8083,8084
 foreach ($p in $ports) {
   try {
     $r = Invoke-WebRequest -Uri "http://localhost:$p/actuator/health" -TimeoutSec 8 -UseBasicParsing
-    Write-Output "PORT $p -> $($r.StatusCode) $($r.Content)"
+    Write-Output "PORT $p -> $($r.StatusCode)"
   } catch {
-    try {
-      $r2 = Invoke-WebRequest -Uri "http://localhost:$p/health" -TimeoutSec 8 -UseBasicParsing
-      Write-Output "PORT $p -> $($r2.StatusCode) $($r2.Content)"
-    } catch {
-      Write-Output "PORT $p -> FAIL $($_.Exception.Message)"
-    }
+    Write-Output "PORT $p -> FAIL"
   }
 }
 ```
 
-## Android: Build e Instalacion
+## Android: Build APK (Manual)
 
-### Build APK debug
+Si necesitas generar APK directamente (sin Android Studio):
 
 ```powershell
 .\gradlew :app:assembleDebug --no-daemon
 ```
 
-APK generado en:
+APK ubicado en: `app/build/outputs/apk/debug/app-debug.apk`
 
-- app/build/outputs/apk/debug/app-debug.apk
+Instalar en dispositivo:
 
-### Nota para pruebas en celular fisico
-
-- El telefono no puede usar 10.0.2.2 (eso es solo emulador).
-- La app ahora intenta resolver host backend automaticamente ante fallos de conexion.
-- Aun debes cumplir condiciones de red:
-  - PC y celular en la misma red (o usar ADB reverse por USB).
-  - Firewall de Windows permitiendo puertos 8080 y 8081.
-  - Contenedores realmente levantados.
+```powershell
+adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## Troubleshooting
 
@@ -157,14 +171,84 @@ docker compose logs -f user-service
 .\gradlew --stop
 ```
 
-## Proximo Paso (Sesion Siguiente)
+## Pendiente por Hacer
 
-- Ejecutar pruebas funcionales completas desde celular:
-  - login,
-  - flujo admin,
-  - carga de mapa,
-  - llamadas BFF y servicios de dominio.
+### Testing & Validación
+
+- [ ] **Pruebas funcionales en celular físico desde Android Studio**
+  - [ ] Flujo de login exitoso con Xano
+  - [ ] Acceso a panel admin
+  - [ ] Carga de mapa y datos de ubicación
+  - [ ] Validar campos de respuesta Xano (token, userId, role)
+  
+- [ ] **Validar formato de respuesta Xano**
+  - [ ] Asegurar que AuthRepository.mapToAuthResponse() maneja todos los casos
+  - [ ] Verificar parsing de `/api:sanos-y-salvos-auth/login` response
+  - [ ] Revisar campos adicionales que pueda retornar Xano (collaboratorType, etc)
+
+### Features Faltantes
+
+- [ ] **Pantalla de Maps completa**
+  - [ ] Mostrar provider (Mapbox/Google)
+  - [ ] Cargar capas de mapa
+  - [ ] Mostrar reportes cercanos con ubicación usuario
+  
+- [ ] **Pantalla de Registro**
+  - [ ] Implementar flujo de `/api:sanos-y-salvos-auth/register`
+  - [ ] Validaciones de formulario (email, password strength)
+  - [ ] Manejo de errores de registro duplicado
+
+- [ ] **Integración de Mascotas & Reportes**
+  - [ ] Pantalla de "Mis Mascotas" (llamar a Xano pets endpoint)
+  - [ ] Crear reporte de mascota perdida
+  - [ ] Mostrar reportes activos/resueltos
+
+- [ ] **Mensajería/Chat**
+  - [ ] Implementar pantalla de mensajes
+  - [ ] Integración con endpoint de mensajes Xano
+  
+- [ ] **User Profile**
+  - [ ] Pantalla de perfil de usuario
+  - [ ] Editar información personal
+  - [ ] Foto de perfil
+
+### Backend
+
+- [ ] **Sincronización BFF-Xano (Opcional)**
+  - Si se desea mantener BFF como cache/wrapper, sincronizar endpoints con Xano
+  - Actualmente Android llama directo a Xano (recomendado para MVP)
+
+- [ ] **Integración RabbitMQ**
+  - [ ] Verificar flujos de evento entre servicios
+  - [ ] Pruebas de integración end-to-end
+
+### DevOps & Deployment
+
+- [ ] **Configurar CI/CD**
+  - [ ] Pipeline de build Android en CI
+  - [ ] Automatic testing en pull requests
+  
+- [ ] **Documentar Xano API Contract**
+  - [ ] Guía de endpoints Xano disponibles
+  - [ ] Formato de requests/responses esperados
+  - [ ] Credenciales y acceso a workspace Xano
+  
+- [ ] **Preparar deployment**
+  - [ ] Configurar release build (ProGuard rules)
+  - [ ] Signing de APK para Google Play (si aplica)
+
+### Limpieza Técnica
+
+- [ ] **Remover código no usado**
+  - RetrofitClient.kt (deprecated)
+  - NetworkConfig.kt (deprecated)
+  - Referencias a BFF si Android no las usa
+
+- [ ] **Consolidar configuración**
+  - Centralizar base URLs (gradle.properties vs BuildConfig)
+  - Documentar dónde vive configuración por environment (dev/staging/prod)
 
 ---
 
-Ultima actualizacion: 2026-06-03
+Última actualización: 2026-06-04
+

@@ -5,8 +5,8 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 
 interface AdminApi {
-    @GET("api/v1/users/admin/list")
+    @GET("/api:sanos-y-salvos-users/list")
     suspend fun listUsers(
         @Header("Authorization") authHeader: String,
-    ): Response<List<Map<String, Any?>>>
+    ): Response<Any>
 }
