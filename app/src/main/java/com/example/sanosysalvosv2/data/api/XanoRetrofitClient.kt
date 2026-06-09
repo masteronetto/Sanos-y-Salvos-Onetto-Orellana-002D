@@ -8,6 +8,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object XanoRetrofitClient {
+    // Auth APIs removed. Retained for non-auth Xano calls if any exist.
+    // If no remaining usages: safe to delete in a future cleanup session.
     private val gson = GsonBuilder().create()
 
     private val okHttp = OkHttpClient.Builder()

@@ -1,18 +1,15 @@
 package com.sanosysalvos.user.service
 
-import com.sanosysalvos.contracts.AuthResponse
-import com.sanosysalvos.contracts.UserLoginRequest
-import com.sanosysalvos.contracts.UserRegistrationRequest
-import com.sanosysalvos.user.client.XanoUserClient
+// AUTH ROLE: redundant-auth
+// CALLS XANO FOR AUTH: yes
+// STATUS: redundant
+// NOTE: This service performs auth via XanoUserClient, but active auth endpoints currently call XanoAuthClient from controller.
+// SAFE TO REMOVE: only after UserHealthController auth endpoints are deleted
+//                 and confirmed no traffic in staging/prod.
+
 import org.springframework.stereotype.Service
 
 @Service
-class UserAccountService(
-    private val xanoUserClient: XanoUserClient,
-) {
-    fun register(request: UserRegistrationRequest): AuthResponse =
-        xanoUserClient.register(request)
-    
-    fun login(request: UserLoginRequest): AuthResponse =
-        xanoUserClient.login(request)
+class UserAccountService {
+    // Retained for future user-data and admin service methods.
 }

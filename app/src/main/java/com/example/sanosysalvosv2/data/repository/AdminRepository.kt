@@ -1,11 +1,12 @@
 package com.example.sanosysalvosv2.data.repository
 
 import com.example.sanosysalvosv2.data.api.AdminApi
-import com.example.sanosysalvosv2.data.api.BffRetrofitClient
+import com.example.sanosysalvosv2.data.api.XanoRetrofitClient
 import com.example.sanosysalvosv2.model.AdminUserSummary
 
 class AdminRepository {
-    private fun api(): AdminApi = BffRetrofitClient.retrofit().create(AdminApi::class.java)
+    // ADMIN ROUTE: Xano direct. BFF not used — unreachable from physical devices.
+    private fun api(): AdminApi = XanoRetrofitClient.retrofit.create(AdminApi::class.java)
 
     suspend fun listRegisteredUsers(token: String): List<AdminUserSummary> {
         val response = api().listUsers(authHeader = "Bearer $token")

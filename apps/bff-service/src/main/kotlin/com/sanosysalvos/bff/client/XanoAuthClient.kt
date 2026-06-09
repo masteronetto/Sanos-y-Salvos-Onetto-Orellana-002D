@@ -1,5 +1,10 @@
 package com.sanosysalvos.bff.client
 
+// AUTH ROLE: partial
+// DELEGATES TO: Xano directly
+// STATUS: active
+// NOTE: This duplicates user-service auth client behavior for login/register against the same Xano auth base.
+
 import com.sanosysalvos.bff.config.XanoAuthClientProperties
 import com.sanosysalvos.contracts.AuthResponse
 import com.sanosysalvos.contracts.UserLoginRequest

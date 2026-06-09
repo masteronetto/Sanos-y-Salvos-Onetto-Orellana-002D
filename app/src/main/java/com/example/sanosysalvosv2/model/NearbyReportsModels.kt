@@ -5,20 +5,6 @@ enum class ReportType {
     FOUND,
 }
 
-data class TileProviderConfig(
-    val provider: String,
-    val tileUrlTemplate: String,
-    val attribution: String,
-    val termsUrl: String,
-)
-
-data class MapLayer(
-    val id: String,
-    val displayName: String,
-    val type: String,
-    val enabledByDefault: Boolean,
-)
-
 data class NearbyReportMarker(
     val reportId: String,
     val reportType: ReportType,

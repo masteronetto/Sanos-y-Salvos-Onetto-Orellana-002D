@@ -1,5 +1,10 @@
 package com.example.sanosysalvosv2.data.session
 
+// AUTH ROLE: active-client
+// CALLS: /api/v1/bff/auth/login and /api/v1/bff/auth/register (indirect via auth flow)
+// STATUS: unclear
+// NOTE: This file persists auth session state only and does not execute network auth calls.
+
 import android.content.Context
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit

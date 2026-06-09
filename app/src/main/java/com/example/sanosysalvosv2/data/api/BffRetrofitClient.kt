@@ -18,6 +18,7 @@ object BffRetrofitClient {
         .build()
 
     fun retrofit(): Retrofit {
+        // Expected Android emulator URL is http://10.0.2.2:8080/ (injected via BuildConfig.BFF_BASE_URL).
         val baseUrl = BuildConfig.BFF_BASE_URL
         return retrofitCache.getOrPut(baseUrl) {
             Retrofit.Builder()

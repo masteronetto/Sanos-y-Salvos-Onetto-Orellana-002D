@@ -1,6 +1,16 @@
 spring:
   application:
     name: geoservice
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    username: guest
+    password: guest
 
 server:
   port: 8083
+
+rabbitmq:
+  exchange: sanos-salvos.exchange
+  routing-key:
+    location: ubicacion.actualizada

@@ -1,13 +1,16 @@
 package com.example.sanosysalvosv2.data.repository
 
-import com.example.sanosysalvosv2.data.api.BffAuthApi
-import com.example.sanosysalvosv2.data.api.BffRetrofitClient
+// AUTH ROUTE: always Xano direct. BFF not used for auth.
+// Reason: BFF is local Docker only — unreachable from physical devices.
+
+import com.example.sanosysalvosv2.data.api.XanoAuthApi
+import com.example.sanosysalvosv2.data.api.XanoRetrofitClient
 import com.example.sanosysalvosv2.model.AuthResponse
 import com.example.sanosysalvosv2.model.LoginRequest
 import com.example.sanosysalvosv2.model.RegisterRequest
 
 class AuthRepository {
-    private fun bffApi(): BffAuthApi = BffRetrofitClient.retrofit().create(BffAuthApi::class.java)
+    private fun xanoApi(): XanoAuthApi = XanoRetrofitClient.retrofit.create(XanoAuthApi::class.java)
 
     suspend fun register(request: RegisterRequest): AuthResponse {
         val response = callWithRecovery { it.register(request) }
@@ -28,9 +31,9 @@ class AuthRepository {
     }
 
     private suspend fun callWithRecovery(
-        call: suspend (BffAuthApi) -> retrofit2.Response<Map<String, Any?>>,
+        call: suspend (XanoAuthApi) -> retrofit2.Response<Map<String, Any?>>,
     ): retrofit2.Response<Map<String, Any?>> {
-        return call(bffApi())
+        return call(xanoApi())
     }
 
     private fun mapToAuthResponse(raw: Map<String, Any?>): AuthResponse {

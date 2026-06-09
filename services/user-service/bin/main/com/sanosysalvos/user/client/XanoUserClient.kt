@@ -1,9 +1,14 @@
 package com.sanosysalvos.user.client
 
+// AUTH ROLE: redundant-auth
+// CALLS XANO FOR AUTH: yes
+// STATUS: redundant
+// NOTE: Auth methods here duplicate BFF auth path, while this client is also actively used for user admin data operations.
+// SAFE TO REMOVE: only after UserHealthController auth endpoints are deleted
+//                 and confirmed no traffic in staging/prod.
+
 import com.sanosysalvos.contracts.AuthResponse
-import com.sanosysalvos.contracts.UserLoginRequest
 import com.sanosysalvos.contracts.UserProfile
-import com.sanosysalvos.contracts.UserRegistrationRequest
 import com.sanosysalvos.contracts.UserRole
 import com.sanosysalvos.common.PrefixedIdGenerator
 import org.springframework.beans.factory.annotation.Value
@@ -24,29 +29,6 @@ class XanoUserClient(
     @Value("\${xano.api.baseUrl:https://x8ki-letl-twmt.n7.xano.io}") val baseUrl: String,
 ) {
     private val logger = LoggerFactory.getLogger(XanoUserClient::class.java)
-    
-    fun register(request: UserRegistrationRequest): AuthResponse {
-        if (request.role == UserRole.COLLABORATOR && request.collaboratorType == null) {
-            error("collaboratorType is required when role is COLLABORATOR")
-        }
-
-        val url = "$baseUrl/api:sanos-y-salvos-auth/register"
-        val payload = mutableMapOf<String, Any?>()
-        payload["fullName"] = request.fullName
-        payload["email"] = request.email
-        payload["phone"] = request.phone
-        payload["password"] = request.password
-        request.role?.let { payload["role"] = it.name }
-        request.collaboratorType?.let { payload["collaboratorType"] = it.name }
-        val response = restTemplate.postForObject<Map<String, Any>>(url, payload)
-        return parseAuthResponse(response)
-    }
-
-    fun login(request: UserLoginRequest): AuthResponse {
-        val url = "$baseUrl/api:sanos-y-salvos-auth/login"
-        val response = restTemplate.postForObject<Map<String, Any>>(url, request)
-        return parseAuthResponse(response)
-    }
 
     fun getMe(token: String): UserProfile {
         val url = "$baseUrl/api:sanos-y-salvos-auth/me"

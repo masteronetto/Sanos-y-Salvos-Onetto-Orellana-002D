@@ -1,5 +1,10 @@
 package com.sanosysalvos.user.client
 
+// AUTH ROLE: auth-owner
+// CALLS XANO FOR AUTH: yes
+// STATUS: active
+// NOTE: This directly mirrors BFF XanoAuthClient login/register behavior against the same Xano auth base.
+
 import com.sanosysalvos.user.config.XanoAuthClientProperties
 import com.sanosysalvos.contracts.AuthResponse
 import com.sanosysalvos.contracts.UserLoginRequest
