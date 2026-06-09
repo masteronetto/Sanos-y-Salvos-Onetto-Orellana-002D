@@ -10,6 +10,8 @@ import com.example.sanosysalvosv2.data.repository.AuthRepository
 import com.example.sanosysalvosv2.data.session.SessionStore
 import com.example.sanosysalvosv2.model.LoginRequest
 import com.example.sanosysalvosv2.model.RegisterRequest
+import com.example.sanosysalvosv2.util.ErrorHandler
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -51,10 +53,10 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     throw IllegalArgumentException("Nombre completo requerido")
                 }
                 if (email.isBlank() || !email.contains("@")) {
-                    throw IllegalArgumentException("Correo invalido")
+                    throw IllegalArgumentException("Correo inválido")
                 }
                 if (password.length < 6) {
-                    throw IllegalArgumentException("Contrasena minima de 6 caracteres")
+                    throw IllegalArgumentException("Contraseña mínima de 6 caracteres")
                 }
 
                 val response = repository.register(
@@ -67,9 +69,9 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 sessionStore.saveSession(response.token, response.userId, response.role)
                 isLoggedIn = true
                 userRole = response.role.uppercase()
-                successMessage = "Registrado. userId=${response.userId}"
+                showSuccessMessage("Registro exitoso")
             } catch (e: Exception) {
-                error = e.message ?: "Error desconocido"
+                error = ErrorHandler.getErrorMessage(e)
             } finally {
                 loading = false
             }
@@ -84,7 +86,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 if (email.isBlank() || password.isBlank()) {
-                    throw IllegalArgumentException("Correo y contrasena son requeridos")
+                    throw IllegalArgumentException("Correo y contraseña son requeridos")
                 }
 
                 val response = repository.login(
@@ -96,12 +98,20 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 sessionStore.saveSession(response.token, response.userId, response.role)
                 isLoggedIn = true
                 userRole = response.role.uppercase()
-                successMessage = "Sesion iniciada. token=${response.token.take(16)}..."
+                showSuccessMessage("Sesión iniciada exitosamente")
             } catch (e: Exception) {
-                error = e.message ?: "Error desconocido"
+                error = ErrorHandler.getErrorMessage(e)
             } finally {
                 loading = false
             }
+        }
+    }
+
+    private fun showSuccessMessage(message: String) {
+        successMessage = message
+        viewModelScope.launch {
+            delay(2000) // Mostrar por 2 segundos
+            successMessage = null
         }
     }
 

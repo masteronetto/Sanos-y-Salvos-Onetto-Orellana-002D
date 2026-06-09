@@ -1,6 +1,16 @@
 spring:
   application:
     name: pet-service
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    username: guest
+    password: guest
 
 server:
   port: 8082
+
+rabbitmq:
+  exchange: sanos-salvos.exchange
+  routing-key:
+    pet: mascota.reportada

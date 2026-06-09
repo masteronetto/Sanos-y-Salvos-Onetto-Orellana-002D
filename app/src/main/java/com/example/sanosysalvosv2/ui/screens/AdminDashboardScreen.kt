@@ -67,10 +67,17 @@ fun AdminDashboardScreen(
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(adminViewModel.users) { user ->
-                Text(
-                    text = "${user.fullName} | ${user.email} | ${user.role}",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Column {
+                    Text(
+                        text = "${user.fullName} | ${user.email} | ${user.role}",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        text = "ID: ${user.id}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray,
+                    )
+                }
             }
         }
     }
