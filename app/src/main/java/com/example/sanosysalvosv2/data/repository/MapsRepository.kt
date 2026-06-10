@@ -22,12 +22,17 @@ class MapsRepository {
     // physical devices. Re-enable only when running on emulator with Docker up.
     private fun xanoApi(): MapApi = XanoRetrofitClient.retrofit.create(MapApi::class.java)
 
-    suspend fun getNearbyReports(lat: Double, lon: Double, radiusMeters: Int = 3000): MapsResult<List<NearbyReport>> {
+    suspend fun getNearbyReports(token: String, lat: Double, lon: Double, radiusMeters: Int = 3000): MapsResult<List<NearbyReport>> {
         val requestUrl = "${BuildConfig.XANO_BASE_URL}api:maps/reports/nearby?lat=$lat&lng=$lon&radiusMeters=$radiusMeters"
         Log.d(tag, "GET $requestUrl")
 
         return try {
-            val response = xanoApi().nearbyReports(lat = lat, lng = lon, radiusMeters = radiusMeters)
+            val response = xanoApi().nearbyReports(
+                authHeader = "Bearer $token",
+                lat = lat,
+                lng = lon,
+                radiusMeters = radiusMeters,
+            )
             if (!response.isSuccessful) {
                 MapsResult.Error(parseHttpError(response))
             } else {

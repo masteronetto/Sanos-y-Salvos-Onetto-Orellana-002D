@@ -1,14 +1,17 @@
 package com.example.sanosysalvosv2.viewmodel
 
+import android.app.Application
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.sanosysalvosv2.data.repository.MapsResult
 import com.example.sanosysalvosv2.data.repository.MapsRepository
+import com.example.sanosysalvosv2.data.session.SessionStore
 import com.example.sanosysalvosv2.model.NearbyReport
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 sealed class MapsUiState {
@@ -19,8 +22,11 @@ sealed class MapsUiState {
 }
 
 class MapsViewModel(
-    private val mapsRepository: MapsRepository = MapsRepository(),
-) : ViewModel() {
+    application: Application,
+) : AndroidViewModel(application) {
+
+    private val sessionStore = SessionStore(application.applicationContext)
+    private val mapsRepository = MapsRepository()
 
     private val _uiState = MutableStateFlow<MapsUiState>(MapsUiState.AwaitingLocation)
     val uiState: StateFlow<MapsUiState> = _uiState.asStateFlow()
@@ -45,7 +51,13 @@ class MapsViewModel(
         _uiState.value = MapsUiState.Loading
 
         viewModelScope.launch {
-            when (val result = mapsRepository.getNearbyReports(lat, lon, radiusMeters)) {
+            val token = sessionStore.tokenFlow.first()
+            if (token.isNullOrBlank()) {
+                _uiState.value = MapsUiState.Error("Sesión no válida")
+                return@launch
+            }
+
+            when (val result = mapsRepository.getNearbyReports(token, lat, lon, radiusMeters)) {
                 is MapsResult.Success -> {
                     _uiState.value = MapsUiState.Success(result.data)
                 }

@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.sanosysalvosv2.BuildConfig
 import com.example.sanosysalvosv2.data.repository.AuthRepository
 import com.example.sanosysalvosv2.data.session.SessionStore
 import com.example.sanosysalvosv2.model.LoginRequest
@@ -81,6 +82,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     fun login(email: String, password: String) {
         error = null
         successMessage = null
+        isLoggedIn = false
         loading = true
 
         viewModelScope.launch {
@@ -88,6 +90,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 if (email.isBlank() || password.isBlank()) {
                     throw IllegalArgumentException("Correo y contraseña son requeridos")
                 }
+
+                sessionStore.clearSession()
 
                 val response = repository.login(
                     LoginRequest(
@@ -100,11 +104,20 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 userRole = response.role.uppercase()
                 showSuccessMessage("Sesión iniciada exitosamente")
             } catch (e: Exception) {
-                error = ErrorHandler.getErrorMessage(e)
+                sessionStore.clearSession()
+                isLoggedIn = false
+                userRole = "USER"
+                error = withDebugCredentialHint(ErrorHandler.getErrorMessage(e))
             } finally {
                 loading = false
             }
         }
+    }
+
+    private fun withDebugCredentialHint(message: String): String {
+        if (!BuildConfig.DEBUG) return message
+        if (!message.contains("Correo o contrasena incorrectos", ignoreCase = true)) return message
+        return "$message Usa admin+local@example.com / P@ssw0rd1 para pruebas locales"
     }
 
     private fun showSuccessMessage(message: String) {
