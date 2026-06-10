@@ -8,6 +8,7 @@ import android.location.LocationManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,8 +17,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -32,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -42,6 +49,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.sanosysalvosv2.R
 import com.example.sanosysalvosv2.model.NearbyReport
+import com.example.sanosysalvosv2.ui.theme.TextAccent
 import com.example.sanosysalvosv2.viewmodel.MapsUiState
 import com.example.sanosysalvosv2.viewmodel.MapsViewModel
 import kotlinx.coroutines.delay
@@ -57,7 +65,10 @@ private const val defaultLat = -33.515
 private const val defaultLon = -70.757
 
 @Composable
-fun MapsScreen(viewModel: MapsViewModel = viewModel()) {
+fun MapsScreen(
+    viewModel: MapsViewModel = viewModel(),
+    onNavigateBack: () -> Unit = {},
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val uiState by viewModel.uiState.collectAsState()
@@ -105,7 +116,35 @@ fun MapsScreen(viewModel: MapsViewModel = viewModel()) {
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            tonalElevation = 4.dp,
+            shadowElevation = 4.dp,
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.ArrowBack,
+                    contentDescription = "Volver",
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clickable { onNavigateBack() },
+                )
+                Text(
+                    text = "Mapa",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 12.dp),
+                )
+            }
+        }
+
+        Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(
             factory = { ctx ->
                 MapView(ctx).also { map ->
@@ -132,7 +171,7 @@ fun MapsScreen(viewModel: MapsViewModel = viewModel()) {
                     text = "Esperando ubicacion para consultar reportes cercanos...",
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = 72.dp)
+                        .padding(top = 8.dp)
                         .padding(horizontal = 16.dp),
                 )
             }
@@ -142,7 +181,7 @@ fun MapsScreen(viewModel: MapsViewModel = viewModel()) {
                     text = "Cargando reportes cercanos...",
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = 72.dp)
+                        .padding(top = 8.dp)
                         .padding(horizontal = 16.dp),
                 )
             }
@@ -154,7 +193,7 @@ fun MapsScreen(viewModel: MapsViewModel = viewModel()) {
                         text = "No hay reportes cercanos en tu zona por ahora.",
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .padding(top = 72.dp)
+                            .padding(top = 8.dp)
                             .padding(horizontal = 16.dp),
                     )
                 }
@@ -166,10 +205,18 @@ fun MapsScreen(viewModel: MapsViewModel = viewModel()) {
                     text = message,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = 72.dp)
+                        .padding(top = 8.dp)
                         .padding(horizontal = 16.dp),
                 )
             }
+        }
+
+        if (selectedReport == null) {
+            MapLegend(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp),
+            )
         }
 
         // Info card shown when a map marker is tapped (inside Box for BoxScope.align)
@@ -223,6 +270,7 @@ fun MapsScreen(viewModel: MapsViewModel = viewModel()) {
             }
         }
     }
+    } // end Column
 
     LaunchedEffect(uiState, mapView) {
         if (uiState is MapsUiState.Success) {
@@ -323,6 +371,57 @@ private fun Context.lastKnownLocation(): Location? {
         .filter { provider -> locationManager.isProviderEnabled(provider) }
         .mapNotNull { provider -> locationManager.getLastKnownLocation(provider) }
         .maxByOrNull { location -> location.time }
+}
+
+@Composable
+private fun MapLegend(modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        tonalElevation = 6.dp,
+        shadowElevation = 6.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Pets,
+                    contentDescription = null,
+                    tint = Color(0xFFC62828),
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = "Perdidas",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color(0xFFC62828),
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Pets,
+                    contentDescription = null,
+                    tint = TextAccent,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = "Encontradas",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = TextAccent,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+    }
 }
 
 @Composable
