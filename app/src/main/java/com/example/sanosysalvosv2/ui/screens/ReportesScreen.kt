@@ -1,5 +1,6 @@
-package com.example.sanosysalvosv2.ui.screens
+﻿package com.example.sanosysalvosv2.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -7,17 +8,36 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,145 +46,173 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.sanosysalvosv2.model.ReportResponse
+import com.example.sanosysalvosv2.model.ReportTypeMapper
 import com.example.sanosysalvosv2.ui.theme.Borders
 import com.example.sanosysalvosv2.ui.theme.TextAccent
 import com.example.sanosysalvosv2.ui.theme.TextSecondary
-
-private enum class ReportFilter {
-    LOST,
-    FOUND,
-    ALL,
-}
-
-private enum class ReportType {
-    LOST,
-    FOUND,
-}
-
-private enum class ReportStatus {
-    PENDING,
-    RESOLVED,
-}
-
-private data class ReportItem(
-    val id: String,
-    val petName: String,
-    val type: ReportType,
-    val date: String,
-    val comuna: String,
-    val reporterName: String,
-    val status: ReportStatus,
-)
+import com.example.sanosysalvosv2.viewmodel.UserReportsUiState
+import com.example.sanosysalvosv2.viewmodel.UserReportsViewModel
 
 @Composable
 fun ReportesScreen(
+    reportViewModel: UserReportsViewModel,
     onNavigateToNewReport: () -> Unit,
     onNavigateToReporteDetail: (String) -> Unit,
+    onNavigateToEditReport: (String) -> Unit,
 ) {
-    val mockReports = listOf(
-        ReportItem(
-            id = "rep-001",
-            petName = "Perla",
-            type = ReportType.LOST,
-            date = "09 Jun 2026",
-            comuna = "Maipu",
-            reporterName = "Camila Soto",
-            status = ReportStatus.PENDING,
-        ),
-        ReportItem(
-            id = "rep-002",
-            petName = "Masu",
-            type = ReportType.FOUND,
-            date = "08 Jun 2026",
-            comuna = "Providencia",
-            reporterName = "David Rojas",
-            status = ReportStatus.RESOLVED,
-        ),
-        ReportItem(
-            id = "rep-003",
-            petName = "Luna",
-            type = ReportType.LOST,
-            date = "07 Jun 2026",
-            comuna = "Santiago Centro",
-            reporterName = "Fernanda Pizarro",
-            status = ReportStatus.PENDING,
-        ),
-        ReportItem(
-            id = "rep-004",
-            petName = "Toby",
-            type = ReportType.FOUND,
-            date = "06 Jun 2026",
-            comuna = "Nunoa",
-            reporterName = "Matias Araya",
-            status = ReportStatus.PENDING,
-        ),
-        ReportItem(
-            id = "rep-005",
-            petName = "Nina",
-            type = ReportType.LOST,
-            date = "05 Jun 2026",
-            comuna = "Las Condes",
-            reporterName = "Paula Diaz",
-            status = ReportStatus.RESOLVED,
-        ),
-    )
+    val uiState by reportViewModel.uiState.collectAsState()
+    val activeFilter by reportViewModel.activeFilter.collectAsState()
+    var showDeleteDialog by remember { mutableStateOf<String?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    var selectedFilter by remember { mutableStateOf(ReportFilter.ALL) }
-
-    val filteredReports = when (selectedFilter) {
-        ReportFilter.LOST -> mockReports.filter { it.type == ReportType.LOST }
-        ReportFilter.FOUND -> mockReports.filter { it.type == ReportType.FOUND }
-        ReportFilter.ALL -> mockReports
+    LaunchedEffect(Unit) {
+        reportViewModel.loadMyReports()
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
-                    label = "Perdidos",
-                    selected = selectedFilter == ReportFilter.LOST,
-                    onClick = { selectedFilter = ReportFilter.LOST },
-                )
-                FilterChip(
-                    label = "Encontrados",
-                    selected = selectedFilter == ReportFilter.FOUND,
-                    onClick = { selectedFilter = ReportFilter.FOUND },
-                )
-                FilterChip(
-                    label = "Todos",
-                    selected = selectedFilter == ReportFilter.ALL,
-                    onClick = { selectedFilter = ReportFilter.ALL },
-                )
+    LaunchedEffect(uiState) {
+        when (uiState) {
+            is UserReportsUiState.Deleted -> {
+                snackbarHostState.showSnackbar("Reporte eliminado")
+                reportViewModel.loadMyReports()
             }
-
-            TextButton(onClick = onNavigateToNewReport) {
-                Text(
-                    text = "+ Nuevo reporte",
-                    color = TextAccent,
-                    fontWeight = FontWeight.SemiBold,
-                )
+            is UserReportsUiState.Error -> {
+                snackbarHostState.showSnackbar((uiState as UserReportsUiState.Error).message)
             }
+            else -> {}
         }
+    }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+    val reports = when (uiState) {
+        is UserReportsUiState.Success -> (uiState as UserReportsUiState.Success).reports
+        else -> emptyList()
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onNavigateToNewReport,
+                containerColor = Color(0xFF4A9B8E),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Nuevo reporte",
+                    tint = Color.White,
+                )
+            }
+        },
+        containerColor = Color.White,
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White)
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            items(filteredReports) { report ->
-                ReportCard(
-                    report = report,
-                    onClick = { onNavigateToReporteDetail(report.id) },
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        label = ReportTypeMapper.dbToDisplay("LOST"),
+                        selected = activeFilter == "LOST",
+                        onClick = { reportViewModel.setFilter("LOST") },
+                    )
+                    FilterChip(
+                        label = ReportTypeMapper.dbToDisplay("FOUND"),
+                        selected = activeFilter == "FOUND",
+                        onClick = { reportViewModel.setFilter("FOUND") },
+                    )
+                    FilterChip(
+                        label = "Todos",
+                        selected = activeFilter == null,
+                        onClick = { reportViewModel.setFilter(null) },
+                    )
+                }
+            }
+
+            when (uiState) {
+                is UserReportsUiState.Loading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(color = TextAccent)
+                    }
+                }
+                is UserReportsUiState.Error -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = (uiState as UserReportsUiState.Error).message,
+                            color = Color(0xFFD32F2F),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                    }
+                }
+                is UserReportsUiState.Success -> {
+                    if (reports.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "No hay reportes para mostrar.",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = TextSecondary,
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            items(reports) { report ->
+                                ReportCard(
+                                    report = report,
+                                    onClick = { onNavigateToReporteDetail(report.id) },
+                                    onEdit = { onNavigateToEditReport(report.id) },
+                                    onDelete = { showDeleteDialog = report.id },
+                                )
+                            }
+                        }
+                    }
+                }
+                else -> {}
+            }
+
+            if (showDeleteDialog != null) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteDialog = null },
+                    title = { Text("Eliminar reporte") },
+                    text = {
+                        Text("¿Estás seguro que deseas eliminar este reporte? Esta acción no se puede deshacer.")
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                reportViewModel.deleteReport(showDeleteDialog!!)
+                                showDeleteDialog = null
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                        ) {
+                            Text("Eliminar", color = Color.White)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteDialog = null }) {
+                            Text("Cancelar")
+                        }
+                    },
                 )
             }
         }
@@ -199,9 +247,14 @@ private fun FilterChip(
 
 @Composable
 private fun ReportCard(
-    report: ReportItem,
+    report: ReportResponse,
     onClick: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
 ) {
+    val reportType = report.type.uppercase()
+    val reportStatus = report.status?.uppercase()
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -221,55 +274,94 @@ private fun ReportCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                ReportTypeBadge(type = reportType)
+                ReportStatusChip(status = reportStatus)
+            }
+
+            Text(
+                text = report.description.orEmpty().ifBlank { "Sin descripción" },
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+
+            report.locationName?.takeIf { it.isNotBlank() }?.let { location ->
                 Text(
-                    text = report.petName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    text = "📍 $location",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary,
                 )
-                ReportTypeBadge(type = report.type)
             }
 
             Text(
-                text = "Fecha: ${report.date}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
-            )
-            Text(
-                text = "Comuna: ${report.comuna}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
-            )
-            Text(
-                text = "Reportado por: ${report.reporterName}",
+                text = "📅 ${report.eventDate ?: report.createdAt ?: "Fecha desconocida"}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
             )
 
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
-                ReportStatusChip(status = report.status)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                if (reportStatus == null || reportStatus == "PENDING") {
+                    OutlinedButton(
+                        onClick = onEdit,
+                        border = ButtonDefaults.outlinedButtonBorder,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF4A9B8E)),
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = null, tint = Color(0xFF4A9B8E))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Editar")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+
+                OutlinedButton(
+                    onClick = onDelete,
+                    border = BorderStroke(1.dp, Color.Red),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = null, tint = Color.Red)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Eliminar")
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ReportTypeBadge(type: ReportType) {
-    val text: String
-    val bgColor: Color
-    val fgColor: Color
+private fun ReportTypeBadge(type: String) {
+    val displayType = ReportTypeMapper.dbToDisplay(type)
+    val badgeColors = when (ReportTypeMapper.normalizeType(type)) {
+        "FOUND" -> Pair(TextAccent.copy(alpha = 0.18f), TextAccent)
+        else -> Pair(Color(0xFFFFE5E5), Color(0xFFC62828))
+    }
+    val bgColor = badgeColors.first
+    val fgColor = badgeColors.second
 
-    when (type) {
-        ReportType.LOST -> {
-            text = "Perdida"
-            bgColor = Color(0xFFFFE5E5)
-            fgColor = Color(0xFFC62828)
-        }
+    Box(
+        modifier = Modifier
+            .background(bgColor, RoundedCornerShape(999.dp))
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+    ) {
+        Text(
+            text = displayType,
+            style = MaterialTheme.typography.labelMedium,
+            color = fgColor,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
 
-        ReportType.FOUND -> {
-            text = "Encontrada"
-            bgColor = TextAccent.copy(alpha = 0.18f)
-            fgColor = TextAccent
-        }
+@Composable
+private fun ReportStatusChip(status: String?) {
+    val normalized = status ?: "PENDING"
+    val (text, bgColor, fgColor) = when (normalized.uppercase()) {
+        "APPROVED" -> Triple("Aprobado", TextAccent.copy(alpha = 0.18f), TextAccent)
+        "RESOLVED" -> Triple("Resuelto", Color(0xFFE8F5E9), Color(0xFF2E7D32))
+        "REJECTED" -> Triple("Rechazado", Color(0xFFFFE5E5), Color(0xFFC62828))
+        else -> Triple("Pendiente", Color(0xFFFFE9CC), Color(0xFFB26A00))
     }
 
     Box(
@@ -285,39 +377,3 @@ private fun ReportTypeBadge(type: ReportType) {
         )
     }
 }
-
-@Composable
-private fun ReportStatusChip(status: ReportStatus) {
-    val text: String
-    val bgColor: Color
-    val fgColor: Color
-
-    when (status) {
-        ReportStatus.PENDING -> {
-            text = "Pendiente"
-            bgColor = Color(0xFFFFE9CC)
-            fgColor = Color(0xFFB26A00)
-        }
-
-        ReportStatus.RESOLVED -> {
-            text = "Resuelto"
-            bgColor = TextAccent.copy(alpha = 0.18f)
-            fgColor = TextAccent
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .background(bgColor, RoundedCornerShape(999.dp))
-            .padding(horizontal = 10.dp, vertical = 5.dp),
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium,
-            color = fgColor,
-            fontWeight = FontWeight.SemiBold,
-        )
-    }
-}
-
-

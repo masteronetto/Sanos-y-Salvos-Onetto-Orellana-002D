@@ -35,6 +35,14 @@ import androidx.compose.ui.unit.sp
 import com.example.sanosysalvosv2.ui.theme.Borders
 import com.example.sanosysalvosv2.ui.theme.TextAccent
 import com.example.sanosysalvosv2.ui.theme.TextSecondary
+import android.app.Application
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import com.example.sanosysalvosv2.viewmodel.MatchesUiState
+import com.example.sanosysalvosv2.viewmodel.UserMatchesViewModel
 
 private data class MatchCard(
     val matchPercent: Int,
@@ -48,27 +56,14 @@ private data class MatchCard(
 @Composable
 fun CoincidenciasScreen(
     onNavigateBack: () -> Unit,
-    onVerDetalles: (Int) -> Unit = {},
-    onContactar: (Int) -> Unit = {},
+    onNavigateToMatchDetail: (String) -> Unit = {},
+    onContactar: (String) -> Unit = {},
 ) {
-    val matches = listOf(
-        MatchCard(
-            matchPercent = 90,
-            lostPetName = "Perla",
-            lostDate = "02/06/2026",
-            lostComuna = "Maipú",
-            foundDate = "04/06/2026",
-            foundComuna = "Cerrillos",
-        ),
-        MatchCard(
-            matchPercent = 75,
-            lostPetName = "Gigi",
-            lostDate = "05/06/2026",
-            lostComuna = "Providencia",
-            foundDate = "06/06/2026",
-            foundComuna = "Providencia",
-        ),
-    )
+    val contextApp = LocalContext.current.applicationContext as Application
+    val viewModel = remember { UserMatchesViewModel(contextApp) }
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) { viewModel.loadMyMatches() }
 
     Column(
         modifier = Modifier
@@ -96,21 +91,48 @@ fun CoincidenciasScreen(
             )
         }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                horizontal = 16.dp,
-                vertical = 8.dp,
-            ),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            items(matches.indices.toList()) { index ->
-                MatchCardItem(
-                    match = matches[index],
-                    onVerDetalles = { onVerDetalles(index) },
-                    onContactar = { onContactar(index) },
-                )
+        when (uiState) {
+            is MatchesUiState.Loading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    androidx.compose.material3.CircularProgressIndicator()
+                }
             }
+            is MatchesUiState.Error -> {
+                val msg = (uiState as MatchesUiState.Error).message
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(text = msg)
+                }
+            }
+            is MatchesUiState.Success -> {
+                val matches = (uiState as MatchesUiState.Success).matches
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                        horizontal = 16.dp,
+                        vertical = 8.dp,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(matches) { m ->
+                        MatchCardItem(
+                            match = MatchCard(
+                                matchPercent = m.score,
+                                lostPetName = m.lostReportId,
+                                lostDate = m.createdAt?.let { java.time.Instant.ofEpochMilli(it).toString() } ?: "",
+                                lostComuna = "",
+                                foundDate = "",
+                                foundComuna = "",
+                            ),
+                            status = m.status,
+                            reason = m.reason,
+                            onVerDetalles = { onNavigateToMatchDetail(m.id) },
+                            onConfirm = { viewModel.acceptMatch(m.id) },
+                            onReject = { viewModel.rejectMatch(m.id) },
+                        )
+                    }
+                }
+            }
+            else -> {}
         }
     }
 }
@@ -118,8 +140,11 @@ fun CoincidenciasScreen(
 @Composable
 private fun MatchCardItem(
     match: MatchCard,
+    status: String,
+    reason: String,
     onVerDetalles: () -> Unit,
-    onContactar: () -> Unit,
+    onConfirm: () -> Unit,
+    onReject: () -> Unit,
 ) {
     val labelText: String
     val labelBg: Color
@@ -225,13 +250,32 @@ private fun MatchCardItem(
                 Text(text = "Ver detalles", fontWeight = FontWeight.SemiBold)
             }
 
-            Button(
-                onClick = onContactar,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = TextAccent),
-                shape = RoundedCornerShape(8.dp),
-            ) {
-                Text(text = "Contactar", color = Color.White, fontWeight = FontWeight.SemiBold)
+            if (status == "PENDING") {
+                OutlinedButton(
+                    onClick = onReject,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
+                ) {
+                    Text(text = "Rechazar", color = Color.Red)
+                }
+
+                Button(
+                    onClick = onConfirm,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = TextAccent),
+                    shape = RoundedCornerShape(8.dp),
+                ) {
+                    Text(text = "Confirmar", color = Color.White, fontWeight = FontWeight.SemiBold)
+                }
+            } else {
+                Button(
+                    onClick = { /* contact or noop */ },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = TextAccent),
+                    shape = RoundedCornerShape(8.dp),
+                ) {
+                    Text(text = "Contactar", color = Color.White, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
     }

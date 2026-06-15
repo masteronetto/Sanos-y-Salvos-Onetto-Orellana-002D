@@ -35,12 +35,16 @@ class AdminRepository {
         val fullName = raw["fullName"]?.toString() ?: raw["name"]?.toString() ?: "Sin nombre"
         val email = raw["email"]?.toString() ?: "Sin email"
         val role = raw["role"]?.toString()?.uppercase() ?: "USER"
+        val phone = raw["phone"]?.toString() ?: raw["phoneNumber"]?.toString() ?: ""
+        val status = raw["status"]?.toString()?.uppercase() ?: ""
 
         return AdminUserSummary(
             id = id,
             fullName = fullName,
             email = email,
             role = role,
+            phone = phone,
+            status = status,
         )
     }
 }

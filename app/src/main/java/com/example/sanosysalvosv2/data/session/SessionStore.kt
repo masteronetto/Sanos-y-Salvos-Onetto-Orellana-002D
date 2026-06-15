@@ -31,11 +31,23 @@ class SessionStore(context: Context) {
         }
         .map { preferences: Preferences -> preferences[TOKEN_KEY] }
 
+    val userIdFlow: Flow<String?> = dataStore.data
+        .catch {
+            if (it is IOException) emit(emptyPreferences()) else throw it
+        }
+        .map { preferences: Preferences -> preferences[USER_ID_KEY] }
+
     val roleFlow: Flow<String?> = dataStore.data
         .catch {
             if (it is IOException) emit(emptyPreferences()) else throw it
         }
         .map { preferences: Preferences -> preferences[USER_ROLE_KEY] }
+
+    val ownerIdFlow: Flow<String?> = dataStore.data
+        .catch {
+            if (it is IOException) emit(emptyPreferences()) else throw it
+        }
+        .map { preferences: Preferences -> preferences[USER_ID_KEY] }
 
     suspend fun saveSession(token: String, userId: String, role: String) {
         dataStore.edit { preferences ->

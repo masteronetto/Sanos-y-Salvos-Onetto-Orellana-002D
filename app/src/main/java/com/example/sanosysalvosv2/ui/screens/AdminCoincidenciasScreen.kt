@@ -3,28 +3,32 @@ package com.example.sanosysalvosv2.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -33,7 +37,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import android.app.Application
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -43,9 +50,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.example.sanosysalvosv2.model.AdminCoincidenciaSummary
+import com.example.sanosysalvosv2.viewmodel.AdminMatchesViewModel
+import com.example.sanosysalvosv2.viewmodel.AdminMatchesUiState
 
 private val Teal = Color(0xFF0F8A8A)
 private val TealSoft = Color(0xFFEAF7F6)
@@ -78,50 +90,48 @@ private enum class MatchStatus(val label: String) {
     REJECTED("Descartado"),
 }
 
-private data class AdminMatchRowMock(
-    val id: String,
-    val name: String,
-    val found: String,
-    val percent: Int,
-    val status: MatchStatus,
-    val date: String?,
-    val comuna: String,
-)
-
 @Composable
 fun AdminCoincidenciasScreen(
     onLogout: () -> Unit,
+    onNavigateToMatchDetail: (String) -> Unit,
 ) {
-    val matches = remember {
-        listOf(
-            AdminMatchRowMock("C001", "Kisti", "Perro sin nombre", 92, MatchStatus.PENDING, "18/09/2025", "Maipú"),
-            AdminMatchRowMock("C002", "Perla", "Perro sin nombre", 87, MatchStatus.PENDING, "29/12/2025", "Providencia"),
-            AdminMatchRowMock("C003", "Cachupin", "Perro sin nombre", 76, MatchStatus.REJECTED, "18/09/2025", "Ñuñoa"),
-            AdminMatchRowMock("C004", "Mishi", "Perro sin nombre", 89, MatchStatus.CONFIRMED, "29/12/2025", "Santiago"),
-            AdminMatchRowMock("C005", "Toby", "Perro sin nombre", 83, MatchStatus.PENDING, null, "Maipú"),
-        )
-    }
+    val context = LocalContext.current
+    val viewModel = remember { AdminMatchesViewModel(context.applicationContext as Application) }
+    val uiState by viewModel.uiState.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedToggle by remember { mutableStateOf(MatchToggle.ALL) }
     var comunaExpanded by remember { mutableStateOf(false) }
-    var statusExpanded by remember { mutableStateOf(false) }
     var selectedComuna by remember { mutableStateOf(MatchComunaFilter.ALL) }
-    var selectedStatus by remember { mutableStateOf(MatchStatus.ALL) }
     var selectedRowIndex by remember { mutableIntStateOf(-1) }
+    var showDiscardConfirmation by remember { mutableStateOf(false) }
+
+    val matches: List<AdminCoincidenciaSummary> = when (uiState) {
+        is AdminMatchesUiState.Success -> (uiState as AdminMatchesUiState.Success).matches
+        else -> emptyList()
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadAllMatches()
+    }
 
     val filteredMatches = matches.filter { match ->
         val matchesToggle = when (selectedToggle) {
-            MatchToggle.PENDING -> match.status == MatchStatus.PENDING
-            MatchToggle.CONFIRMED -> match.status == MatchStatus.CONFIRMED
-            MatchToggle.REJECTED -> match.status == MatchStatus.REJECTED
+            MatchToggle.PENDING -> match.status.equals("PENDING", ignoreCase = true)
+            MatchToggle.CONFIRMED -> match.status.equals("CONFIRMED", ignoreCase = true)
+            MatchToggle.REJECTED -> match.status.equals("DISCARDED", ignoreCase = true) || match.status.equals("REJECTED", ignoreCase = true)
             MatchToggle.ALL -> true
         }
-        val matchesSearch = searchQuery.isBlank() || listOf(match.id, match.name, match.found, match.comuna, match.date.orEmpty())
+        val matchesSearch = searchQuery.isBlank() || listOf(match.id, match.sourceName, match.matchedName, match.comuna, match.date)
             .any { value -> value.contains(searchQuery, ignoreCase = true) }
         val matchesComuna = selectedComuna == MatchComunaFilter.ALL || match.comuna.equals(selectedComuna.label, ignoreCase = true)
-        val matchesStatus = selectedStatus == MatchStatus.ALL || match.status == selectedStatus
-        matchesToggle && matchesSearch && matchesComuna && matchesStatus
+        matchesToggle && matchesSearch && matchesComuna
+    }
+
+    LaunchedEffect(filteredMatches.size) {
+        if (selectedRowIndex >= filteredMatches.size) {
+            selectedRowIndex = -1
+        }
     }
 
     androidx.compose.material3.Scaffold(
@@ -147,10 +157,18 @@ fun AdminCoincidenciasScreen(
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ToggleButton("Pendientes", selectedToggle == MatchToggle.PENDING) { selectedToggle = MatchToggle.PENDING }
-                ToggleButton("Confirmados", selectedToggle == MatchToggle.CONFIRMED) { selectedToggle = MatchToggle.CONFIRMED }
-                ToggleButton("Descartadas", selectedToggle == MatchToggle.REJECTED) { selectedToggle = MatchToggle.REJECTED }
-                ToggleButton("Todas", selectedToggle == MatchToggle.ALL) { selectedToggle = MatchToggle.ALL }
+                ToggleButton("Pendientes", selectedToggle == MatchToggle.PENDING) {
+                    selectedToggle = MatchToggle.PENDING
+                }
+                ToggleButton("Confirmados", selectedToggle == MatchToggle.CONFIRMED) {
+                    selectedToggle = MatchToggle.CONFIRMED
+                }
+                ToggleButton("Descartadas", selectedToggle == MatchToggle.REJECTED) {
+                    selectedToggle = MatchToggle.REJECTED
+                }
+                ToggleButton("Todas", selectedToggle == MatchToggle.ALL) {
+                    selectedToggle = MatchToggle.ALL
+                }
             }
 
             Row(
@@ -178,37 +196,90 @@ fun AdminCoincidenciasScreen(
                     optionLabel = { it.label },
                     onOptionSelected = { selectedComuna = it },
                 )
-
-                DropdownChip(
-                    label = "Estado",
-                    value = selectedStatus.label,
-                    expanded = statusExpanded,
-                    onExpandedChange = { statusExpanded = it },
-                    onDismiss = { statusExpanded = false },
-                    options = MatchStatus.entries,
-                    optionLabel = { it.label },
-                    onOptionSelected = { selectedStatus = it },
-                )
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                CircleActionButton(icon = Icons.Filled.Delete, onClick = { /* placeholder */ })
-                CircleActionButton(icon = Icons.Filled.Edit, onClick = { /* placeholder */ })
+                CircleActionButton(
+                    icon = Icons.Filled.Delete,
+                    onClick = {
+                        if (selectedRowIndex in filteredMatches.indices) {
+                            showDiscardConfirmation = true
+                        }
+                    },
+                )
             }
 
-            TableHeader()
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(0.dp),
-            ) {
-                itemsIndexed(filteredMatches) { index, match ->
-                    MatchRow(
-                        match = match,
-                        selected = selectedRowIndex == index,
-                        onClick = { selectedRowIndex = index },
+            when (uiState) {
+                is AdminMatchesUiState.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                }
+                is AdminMatchesUiState.Error -> {
+                    Text(
+                        text = (uiState as AdminMatchesUiState.Error).message,
+                        color = RejectedRed,
+                        style = MaterialTheme.typography.bodyLarge,
                     )
                 }
+                is AdminMatchesUiState.Success -> {
+                    if (filteredMatches.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("No se encontraron coincidencias.")
+                        }
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .horizontalScroll(rememberScrollState()),
+                        ) {
+                            Column(modifier = Modifier.width(700.dp)) {
+                                TableHeader()
+
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.spacedBy(0.dp),
+                                ) {
+                                    itemsIndexed(filteredMatches) { index, match ->
+                                        MatchRow(
+                                            match = match,
+                                            selected = selectedRowIndex == index,
+                                            onClick = {
+                                                selectedRowIndex = index
+                                                onNavigateToMatchDetail(match.id)
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (showDiscardConfirmation) {
+                val selectedMatch = filteredMatches.getOrNull(selectedRowIndex)
+                AlertDialog(
+                    onDismissRequest = { showDiscardConfirmation = false },
+                    title = { Text("Descartar coincidencia") },
+                    text = { Text("¿Estás seguro de que quieres descartar esta coincidencia?") },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                selectedMatch?.let { viewModel.discardMatch(it.id) }
+                                showDiscardConfirmation = false
+                            },
+                        ) {
+                            Text("Descartar")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDiscardConfirmation = false }) {
+                            Text("Cancelar")
+                        }
+                    },
+                )
             }
         }
     }
@@ -218,24 +289,24 @@ fun AdminCoincidenciasScreen(
 private fun TableHeader() {
     Row(
         modifier = Modifier
-            .fillMaxWidth()
+            .width(700.dp)
             .background(Color.White)
             .border(1.dp, BorderColor)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        HeaderCell("ID", 0.8f)
-        HeaderCell("Nombre", 1.2f)
-        HeaderCell("Encontrado", 1.8f)
-        HeaderCell("Coincidencia %", 1.0f)
-        HeaderCell("Estado", 1.0f)
-        HeaderCell("Fecha", 0.9f)
+        HeaderCell("ID", width = 48.dp)
+        HeaderCell("Nombre", width = 140.dp)
+        HeaderCell("Encontrado", width = 220.dp)
+        HeaderCell("Coincidencia %", width = 110.dp)
+        HeaderCell("Estado", width = 90.dp)
+        HeaderCell("Fecha", width = 90.dp)
     }
 }
 
 @Composable
 private fun MatchRow(
-    match: AdminMatchRowMock,
+    match: AdminCoincidenciaSummary,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -250,16 +321,16 @@ private fun MatchRow(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.width(700.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TableCell(match.id, 0.8f)
-            TableCell(match.name, 1.2f, bold = true)
-            TableCell(match.found, 1.8f)
-            TableCell("${match.percent}%", 1.0f, bold = true)
-            TableCell(match.status.label, 1.0f, color = matchStatusColor(match.status), bold = true)
-            TableCell(match.date ?: "—", 0.9f)
+            TableCell(match.id, width = 48.dp)
+            TableCell(match.sourceName, width = 140.dp, bold = true)
+            TableCell(match.matchedName, width = 220.dp)
+            TableCell("${match.score}%", width = 110.dp, bold = true)
+            TableCell(match.status, width = 90.dp, color = matchStatusColorFromString(match.status), bold = true, overflow = TextOverflow.Clip)
+            TableCell(match.date.ifEmpty { "—" }, width = 90.dp)
         }
 
         Spacer(
@@ -274,11 +345,11 @@ private fun MatchRow(
 @Composable
 private fun RowScope.HeaderCell(
     text: String,
-    weight: Float,
+    width: Dp,
 ) {
     Text(
         text = text,
-        modifier = Modifier.weight(weight),
+        modifier = Modifier.width(width),
         color = GrayText,
         fontWeight = FontWeight.Bold,
         maxLines = 1,
@@ -289,17 +360,18 @@ private fun RowScope.HeaderCell(
 @Composable
 private fun RowScope.TableCell(
     text: String,
-    weight: Float,
+    width: Dp,
     color: Color = Color.Black,
     bold: Boolean = false,
+    overflow: TextOverflow = TextOverflow.Ellipsis,
 ) {
     Text(
         text = text,
-        modifier = Modifier.weight(weight),
+        modifier = Modifier.width(width),
         color = color,
         fontWeight = if (bold) FontWeight.SemiBold else FontWeight.Normal,
         maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
+        overflow = overflow,
     )
 }
 
@@ -383,6 +455,13 @@ private fun matchStatusColor(status: MatchStatus): Color = when (status) {
     MatchStatus.CONFIRMED -> ConfirmedTeal
     MatchStatus.REJECTED -> RejectedRed
     MatchStatus.ALL -> Color.Black
+}
+
+private fun matchStatusColorFromString(status: String): Color = when (status.uppercase()) {
+    "PENDING" -> PendingOrange
+    "CONFIRMED" -> ConfirmedTeal
+    "DISCARDED", "REJECTED" -> RejectedRed
+    else -> Color.Black
 }
 
 @Composable

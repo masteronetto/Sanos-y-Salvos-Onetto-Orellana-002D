@@ -19,17 +19,26 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import com.example.sanosysalvosv2.viewmodel.UserReportsUiState
+import com.example.sanosysalvosv2.viewmodel.UserReportsViewModel
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.sanosysalvosv2.model.ReportTypeMapper
 import com.example.sanosysalvosv2.ui.theme.Borders
 import com.example.sanosysalvosv2.ui.theme.TextAccent
 import com.example.sanosysalvosv2.ui.theme.TextSecondary
@@ -79,10 +88,33 @@ private val mockReporte = ReporteDetalle(
 
 @Composable
 fun ReporteDetailScreen(
+    reportViewModel: UserReportsViewModel,
     reportId: String,
     onNavigateBack: () -> Unit = {},
+    onNavigateToEditReport: (String) -> Unit = {},
 ) {
-    val reporte = mockReporte
+    val uiState by reportViewModel.uiState.collectAsState()
+    val selectedReport by reportViewModel.selectedReport.collectAsState()
+
+    LaunchedEffect(reportId) {
+        reportViewModel.loadReportDetails(reportId)
+    }
+
+    if (selectedReport == null && uiState is UserReportsUiState.Loading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White),
+            contentAlignment = Alignment.Center,
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    val reporte = selectedReport ?: return
+    val isResolved = reporte.status?.equals("RESOLVED", ignoreCase = true) == true
+    val reportTypeText = ReportTypeMapper.dbToDisplay(reporte.type)
 
     Column(
         modifier = Modifier
@@ -141,20 +173,15 @@ fun ReporteDetailScreen(
                 )
             }
 
-            val badgeBg = if (reporte.petStatus == ReportePetStatus.PERDIDA)
-                Color(0xFFC62828) else TextAccent
-            val badgeText = if (reporte.petStatus == ReportePetStatus.PERDIDA)
-                "Perdida" else "Encontrada"
-
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(10.dp)
-                    .background(badgeBg, RoundedCornerShape(999.dp))
+                    .background(if (reportTypeText == "Perdida") Color(0xFFC62828) else TextAccent, RoundedCornerShape(999.dp))
                     .padding(horizontal = 12.dp, vertical = 5.dp),
             ) {
                 Text(
-                    text = badgeText,
+                    text = reportTypeText,
                     style = MaterialTheme.typography.labelMedium,
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
@@ -169,56 +196,19 @@ fun ReporteDetailScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
-                text = reporte.petName,
+                text = (reporte.species ?: reporte.breed ?: reporte.locationName).orEmpty().ifBlank { "Reporte sin nombre" },
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    InfoRow(label = "Especie", value = reporte.especie)
-                    InfoRow(label = "Raza", value = reporte.raza)
-                    InfoRow(label = "Sexo", value = reporte.sexo)
-                    InfoRow(label = "Edad", value = reporte.edad)
-                    InfoRow(label = "Color", value = reporte.color)
-                }
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .border(1.dp, Borders, RoundedCornerShape(10.dp))
-                        .padding(10.dp),
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            text = "Señales particulares",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = reporte.seniasParticulares,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondary,
-                        )
-                    }
-                }
-            }
-
             SectionTitle("Descripción")
             Text(
-                text = reporte.descripcion,
+                text = reporte.description.orEmpty().ifBlank { "No hay descripción disponible." },
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
             )
 
             SectionTitle("Información del reporte")
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -227,74 +217,61 @@ fun ReporteDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 ReporteInfoRow("ID del reporte", reporte.id)
-                ReporteInfoRow("Reportado por", reporte.reportadoPor)
-                ReporteInfoRow("Teléfono", reporte.telefono)
-                ReporteInfoRow("Comuna", reporte.comuna)
-                ReporteInfoRow("Fecha de pérdida", reporte.fechaPerdida)
-                ReporteInfoRow("Última ubicación", reporte.ultimaUbicacion)
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "Estado",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.weight(1f),
-                    )
-                    val (statusText, statusColor) = when (reporte.estado) {
-                        ReporteStatus.PENDIENTE -> "Pendiente" to Color(0xFFB26A00)
-                        ReporteStatus.RESUELTO -> "Resuelto" to TextAccent
-                        ReporteStatus.RECHAZADO -> "Rechazado" to Color(0xFFC62828)
-                    }
-                    Box(
-                        modifier = Modifier
-                            .background(
-                                statusColor.copy(alpha = 0.15f),
-                                RoundedCornerShape(999.dp),
-                            )
-                            .padding(horizontal = 10.dp, vertical = 4.dp),
-                    ) {
+                ReporteInfoRow("Tipo", reportTypeText)
+                ReporteInfoRow("Estado", reporte.status.orEmpty().ifBlank { "Pendiente" })
+                ReporteInfoRow("Reportado por", reporte.reporterId.orEmpty().ifBlank { "Desconocido" })
+                ReporteInfoRow("Comuna", reporte.locationName.orEmpty().ifBlank { "No disponible" })
+                ReporteInfoRow("Fecha", (reporte.eventDate ?: reporte.createdAt).orEmpty().ifBlank { "No disponible" })
+                ReporteInfoRow("Ubicación", reporte.locationName.orEmpty().ifBlank { "No disponible" })
+                
+                // Show updatedAt if available and different from createdAt
+                if (!reporte.updatedAt.isNullOrBlank() && reporte.updatedAt != reporte.createdAt) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = statusText,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = statusColor,
+                            "Actualizado",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextSecondary,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 11.sp,
+                        )
+                        Text(
+                            reporte.updatedAt,
+                            style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
+                            fontSize = 11.sp,
+                            color = Color.Gray,
+                            fontStyle = FontStyle.Italic,
                         )
                     }
                 }
             }
 
-            if (reporte.isOwner) {
-                Column(
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                OutlinedButton(
+                    onClick = { onNavigateToEditReport(reporte.id) },
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextAccent),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, TextAccent),
+                    shape = RoundedCornerShape(8.dp),
                 ) {
-                    OutlinedButton(
-                        onClick = {},
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = TextAccent),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, TextAccent),
-                        shape = RoundedCornerShape(8.dp),
-                    ) {
-                        Text(text = "Editar reporte", fontWeight = FontWeight.SemiBold)
-                    }
+                    Text(text = "Editar reporte", fontWeight = FontWeight.SemiBold)
+                }
 
-                    Button(
-                        onClick = {},
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = TextAccent),
-                        shape = RoundedCornerShape(8.dp),
-                    ) {
-                        Text(
-                            text = "Marcar como resuelto",
-                            color = Color.White,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
+                Button(
+                    onClick = { reportViewModel.markAsResolved(reporte.id) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = TextAccent),
+                    shape = RoundedCornerShape(8.dp),
+                    enabled = !isResolved,
+                ) {
+                    Text(
+                        text = if (isResolved) "Reporte resuelto" else "Marcar como resuelto",
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 }
             }
         }

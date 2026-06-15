@@ -23,7 +23,7 @@ class MapsRepository {
     private fun xanoApi(): MapApi = XanoRetrofitClient.retrofit.create(MapApi::class.java)
 
     suspend fun getNearbyReports(token: String, lat: Double, lon: Double, radiusMeters: Int = 3000): MapsResult<List<NearbyReport>> {
-        val requestUrl = "${BuildConfig.XANO_BASE_URL}api:maps/reports/nearby?lat=$lat&lng=$lon&radiusMeters=$radiusMeters"
+        val requestUrl = "${BuildConfig.XANO_BASE_URL}api:maps/reports/nearby?lat=$lat&lng=$lon&radius_meters=$radiusMeters"
         Log.d(tag, "GET $requestUrl")
 
         return try {
@@ -46,6 +46,10 @@ class MapsRepository {
                             lon = marker.longitude,
                             title = marker.title,
                             description = "${marker.reportType.name.lowercase()} · ${marker.distanceMeters.toInt()} m",
+                            status = marker.reportType.name,
+                            photoUrl = marker.photoUrl,
+                            reporterName = marker.reporterName,
+                            reportId = marker.reportId,
                         )
                     }
                     MapsResult.Success(reports)

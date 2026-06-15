@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.sanosysalvosv2.api.MatchResult
 import com.example.sanosysalvosv2.data.session.SessionStore
 import com.example.sanosysalvosv2.repository.MatchRepository
+import com.example.sanosysalvosv2.repository.MatchResult_ as RepoMatchResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -35,17 +36,13 @@ class MatchViewModel(application: Application) : AndroidViewModel(application) {
                     return@launch
                 }
 
-                val result = matchRepository.getMyMatches(token)
-                when (result) {
-                    is com.example.sanosysalvosv2.repository.MatchResult_.Success -> {
-                        if (result.data.isNotEmpty()) {
-                            _uiState.value = MatchUiState.MatchesFound(result.data)
-                        } else {
-                            _uiState.value = MatchUiState.Idle
-                        }
+                when (val result = matchRepository.getMyMatches(token)) {
+                    is RepoMatchResult.Success -> {
+                        val matches = result.data
+                        if (matches.isNotEmpty()) _uiState.value = MatchUiState.MatchesFound(matches) else _uiState.value = MatchUiState.Idle
                     }
-                    is com.example.sanosysalvosv2.repository.MatchResult_.Error -> {
-                        _uiState.value = MatchUiState.Error(result.exception.message ?: "Error desconocido")
+                    is RepoMatchResult.Error -> {
+                        _uiState.value = MatchUiState.Error(result.exception.message ?: "Error")
                     }
                 }
             } catch (e: Exception) {

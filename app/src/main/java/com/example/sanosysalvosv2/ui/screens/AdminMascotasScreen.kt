@@ -3,17 +3,20 @@ package com.example.sanosysalvosv2.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,6 +39,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.sanosysalvosv2.viewmodel.AdminMascotasViewModel
+import com.example.sanosysalvosv2.viewmodel.AdminMascotasUiState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +53,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.sanosysalvosv2.viewmodel.AdminViewModel
 
@@ -82,35 +90,31 @@ private enum class PetStatus(val label: String) {
 @Composable
 fun AdminMascotasScreen(
     onLogout: () -> Unit,
+    onNavigateToEditPet: (String?) -> Unit,
 ) {
-    val pets = remember {
-        listOf(
-            AdminPetRowMock("M001", "Masu", PetType.PERRO, "Mestiza", "Camila Orellana", PetStatus.ACTIVO),
-            AdminPetRowMock("M002", "Perla", PetType.PERRO, "Pomerania Toy", "Camila Orellana", PetStatus.ACTIVO),
-            AdminPetRowMock("M003", "Cachupin", PetType.PERRO, "Golden Retriever", "Valentina Perez", PetStatus.ACTIVO),
-            AdminPetRowMock("M004", "Mishi", PetType.GATO, "Atigrado", "Carlos Gómez", PetStatus.ACTIVO),
-            AdminPetRowMock("M005", "Rocky", PetType.PERRO, "Beagle", "José Muñoz", PetStatus.ACTIVO),
-            AdminPetRowMock("M006", "Toby", PetType.GATO, "Persa", "Paula Torres", PetStatus.INACTIVO),
-            AdminPetRowMock("M007", "Coco", PetType.PERRO, "Mestizo", "Carlos Gómez", PetStatus.ACTIVO),
-        )
-    }
+    val viewModel: AdminMascotasViewModel = viewModel()
+    LaunchedEffect(Unit) { viewModel.loadAllPets() }
 
+    val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     var speciesExpanded by remember { mutableStateOf(false) }
     var statusExpanded by remember { mutableStateOf(false) }
     var selectedSpecies by remember { mutableStateOf(PetType.TODOS) }
     var selectedStatus by remember { mutableStateOf(PetStatus.TODOS) }
     var selectedRowIndex by remember { mutableIntStateOf(-1) }
+    var selectedPetId by remember { mutableStateOf<String?>(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        // Real fetch path stays intact in the shared admin view model.
+    val pets = when (uiState) {
+        is AdminMascotasUiState.Success -> (uiState as AdminMascotasUiState.Success).pets
+        else -> emptyList()
     }
 
     val filteredPets = pets.filter { pet ->
-        val matchesSearch = searchQuery.isBlank() || listOf(pet.id, pet.name, pet.type.label, pet.breed, pet.owner)
+        val matchesSearch = searchQuery.isBlank() || listOf(pet.id, pet.name, pet.species, pet.breed)
             .any { value -> value.contains(searchQuery, ignoreCase = true) }
-        val matchesSpecies = selectedSpecies == PetType.TODOS || pet.type == selectedSpecies
-        val matchesStatus = selectedStatus == PetStatus.TODOS || pet.status == selectedStatus
+        val matchesSpecies = selectedSpecies == PetType.TODOS || pet.species.equals(selectedSpecies.label, ignoreCase = true)
+        val matchesStatus = selectedStatus == PetStatus.TODOS || (pet.age > 0 && selectedStatus == PetStatus.ACTIVO) || (pet.age == 0 && selectedStatus == PetStatus.INACTIVO)
         matchesSearch && matchesSpecies && matchesStatus
     }
 
@@ -146,13 +150,12 @@ fun AdminMascotasScreen(
                     onValueChange = { searchQuery = it },
                     modifier = Modifier.weight(1f),
                     placeholder = { Text("Buscar mascota...") },
-                    leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = null) },
                     singleLine = true,
                     shape = RoundedCornerShape(16.dp),
                 )
 
                 Button(
-                    onClick = { /* placeholder */ },
+                    onClick = { onNavigateToEditPet(null) },
                     colors = ButtonDefaults.buttonColors(containerColor = Teal),
                     shape = RoundedCornerShape(16.dp),
                 ) {
@@ -171,7 +174,7 @@ fun AdminMascotasScreen(
                     expanded = speciesExpanded,
                     onExpandedChange = { speciesExpanded = it },
                     onDismiss = { speciesExpanded = false },
-                    options = PetType.entries,
+                    options = PetType.values().toList(),
                     optionLabel = { it.label },
                     onOptionSelected = { selectedSpecies = it },
                 )
@@ -181,34 +184,63 @@ fun AdminMascotasScreen(
                     expanded = statusExpanded,
                     onExpandedChange = { statusExpanded = it },
                     onDismiss = { statusExpanded = false },
-                    options = PetStatus.entries,
+                    options = PetStatus.values().toList(),
                     optionLabel = { it.label },
                     onOptionSelected = { selectedStatus = it },
                 )
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                CircleActionButton(icon = Icons.Filled.Delete, onClick = { /* placeholder */ })
-                CircleActionButton(icon = Icons.Filled.Edit, onClick = { /* placeholder */ })
+                CircleActionButton(icon = Icons.Filled.Delete, onClick = { showDeleteDialog = true },)
+                CircleActionButton(icon = Icons.Filled.Edit, onClick = { selectedPetId?.let { onNavigateToEditPet(it) } },)
             }
 
-            if (adminViewModelHasError()) {
-                // placeholder guard to keep the real fetch path visible in the UI layer if needed.
+            if (uiState is AdminMascotasUiState.Loading) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { androidx.compose.material3.CircularProgressIndicator() }
             }
 
-            TableHeader()
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(0.dp),
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .horizontalScroll(rememberScrollState()),
             ) {
-                itemsIndexed(filteredPets) { index, pet ->
-                    PetTableRow(
-                        pet = pet,
-                        selected = selectedRowIndex == index,
-                        onClick = { selectedRowIndex = index },
-                    )
+                Column(modifier = Modifier.width(620.dp)) {
+                    TableHeader()
+
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(0.dp),
+                    ) {
+                        itemsIndexed(filteredPets) { index, pet ->
+                            PetTableRow(
+                                pet = AdminPetRowMock(pet.id, pet.name, if (pet.species.equals("Perro", true)) PetType.PERRO else PetType.GATO, pet.breed, pet.ownerId, if (pet.age > 0) PetStatus.ACTIVO else PetStatus.INACTIVO),
+                                selected = selectedRowIndex == index,
+                                onClick = {
+                                    selectedRowIndex = index
+                                    selectedPetId = pet.id
+                                },
+                            )
+                        }
+                    }
                 }
+            }
+
+            if (showDeleteDialog) {
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = { showDeleteDialog = false },
+                    title = { Text(text = "Eliminar mascota") },
+                    text = { Text(text = "¿Seguro que deseas eliminar esta mascota?") },
+                    confirmButton = {
+                        androidx.compose.material3.TextButton(onClick = {
+                            selectedPetId?.let { viewModel.deletePet(it) }
+                            showDeleteDialog = false
+                        }) { Text("Eliminar") }
+                    },
+                    dismissButton = {
+                        androidx.compose.material3.TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") }
+                    },
+                )
             }
         }
     }
@@ -218,18 +250,18 @@ fun AdminMascotasScreen(
 private fun TableHeader() {
     Row(
         modifier = Modifier
-            .fillMaxWidth()
+            .width(620.dp)
             .background(Color.White)
             .border(1.dp, BorderColor)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        HeaderCell(text = "ID", weight = 0.8f)
-        HeaderCell(text = "Nombre", weight = 1.2f)
-        HeaderCell(text = "Tipo", weight = 1.0f)
-        HeaderCell(text = "Raza", weight = 1.4f)
-        HeaderCell(text = "Dueño", weight = 1.6f)
-        HeaderCell(text = "Estado", weight = 0.9f)
+        HeaderCell(text = "ID", width = 48.dp)
+        HeaderCell(text = "Nombre", width = 140.dp)
+        HeaderCell(text = "Tipo", width = 100.dp)
+        HeaderCell(text = "Raza", width = 140.dp)
+        HeaderCell(text = "Dueño", width = 160.dp)
+        HeaderCell(text = "Estado", width = 80.dp)
     }
 }
 
@@ -250,20 +282,21 @@ private fun PetTableRow(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.width(620.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TableCell(text = pet.id, weight = 0.8f)
-            TableCell(text = pet.name, weight = 1.2f, bold = true)
-            TableCell(text = pet.type.label, weight = 1.0f)
-            TableCell(text = pet.breed, weight = 1.4f)
-            TableCell(text = pet.owner, weight = 1.6f)
+            TableCell(text = pet.id, width = 48.dp)
+            TableCell(text = pet.name, width = 140.dp, bold = true)
+            TableCell(text = pet.type.label, width = 100.dp)
+            TableCell(text = pet.breed, width = 140.dp)
+            TableCell(text = pet.owner, width = 160.dp)
             TableCell(
                 text = pet.status.label,
-                weight = 0.9f,
+                width = 80.dp,
                 color = petStatusColor(pet.status),
                 bold = true,
+                overflow = TextOverflow.Clip,
             )
         }
 
@@ -279,11 +312,11 @@ private fun PetTableRow(
 @Composable
 private fun RowScope.HeaderCell(
     text: String,
-    weight: Float,
+    width: Dp,
 ) {
     Text(
         text = text,
-        modifier = Modifier.weight(weight),
+        modifier = Modifier.width(width),
         fontWeight = FontWeight.Bold,
         color = GrayText,
         maxLines = 1,
@@ -294,17 +327,18 @@ private fun RowScope.HeaderCell(
 @Composable
 private fun RowScope.TableCell(
     text: String,
-    weight: Float,
+    width: Dp,
     color: Color = Color.Black,
     bold: Boolean = false,
+    overflow: TextOverflow = TextOverflow.Ellipsis,
 ) {
     Text(
         text = text,
-        modifier = Modifier.weight(weight),
+        modifier = Modifier.width(width),
         color = color,
         fontWeight = if (bold) FontWeight.SemiBold else FontWeight.Normal,
         maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
+        overflow = overflow,
     )
 }
 

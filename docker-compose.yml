@@ -1,3 +1,9 @@
+# Start all services + SonarQube:
+#   docker-compose up -d
+# Run backend scan (after SonarQube is healthy):
+#   SONAR_TOKEN=xxx docker-compose --profile scan run sonar-scan
+# Access SonarQube UI: http://localhost:9000 
+
 services:
   rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -68,6 +74,68 @@ services:
       - rabbitmq
       - geoservice
 
+  sonarqube:
+    image: sonarqube:10.4-community
+    container_name: petfind-sonarqube
+    depends_on:
+      - sonar-db
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonar-db:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar
+    ports:
+      - "9000:9000"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_extensions:/opt/sonarqube/extensions
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/api/system/status | grep -q '\"UP\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    networks:
+      - petfind-network
+
+  sonar-db:
+    image: postgres:15-alpine
+    container_name: petfind-sonar-db
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+      POSTGRES_DB: sonar
+    volumes:
+      - sonar_db_data:/var/lib/postgresql/data
+    networks:
+      - petfind-network
+
+  sonar-scan:
+    image: sonarsource/sonar-scanner-cli:5
+    container_name: petfind-sonar-scan
+    depends_on:
+      sonarqube:
+        condition: service_healthy
+    environment:
+      SONAR_HOST_URL: http://sonarqube:9000
+      SONAR_TOKEN: ${SONAR_TOKEN}
+    volumes:
+      - .:/usr/src
+    working_dir: /usr/src
+    networks:
+      - petfind-network
+    profiles:
+      - scan
+    command: sonar-scanner
+
 networks:
   default:
     name: sanosysalvos-net
+  petfind-network:
+    name: petfind-network
+
+volumes:
+  sonarqube_data:
+  sonarqube_logs:
+  sonarqube_extensions:
+  sonar_db_data:

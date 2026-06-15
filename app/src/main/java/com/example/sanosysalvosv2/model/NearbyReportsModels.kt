@@ -12,6 +12,8 @@ data class NearbyReportMarker(
     val longitude: Double,
     val title: String,
     val distanceMeters: Double,
+    val photoUrl: String? = null,
+    val reporterName: String? = null,
 )
 
 data class NearbyReportsResponse(

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "193633091991",
+    "project_id": "petfind-29b40",
+    "storage_bucket": "petfind-29b40.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:193633091991:android:091ea6c3680b3d951884d2",
+        "android_client_info": {
+          "package_name": "com.example.sanosysalvosv2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDx0po9KxSoPFaUrQ6XdEEi81WKGEvDq2Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

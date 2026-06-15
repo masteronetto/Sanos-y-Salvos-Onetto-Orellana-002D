@@ -5,10 +5,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apartment
 import androidx.compose.material.icons.filled.BarChart
@@ -19,18 +23,26 @@ import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.TaskAlt
+import androidx.compose.material3.Divider
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -41,14 +53,18 @@ import com.example.sanosysalvosv2.data.session.SessionStore
 import com.example.sanosysalvosv2.ui.screens.AdminCoincidenciasScreen
 import com.example.sanosysalvosv2.ui.screens.AdminConfiguracionScreen
 import com.example.sanosysalvosv2.ui.screens.AdminDashboardScreen
+import com.example.sanosysalvosv2.ui.screens.AdminMatchDetailScreen
 import com.example.sanosysalvosv2.ui.screens.AdminReporteDetailScreen
 import com.example.sanosysalvosv2.ui.screens.AdminEntidadesScreen
 import com.example.sanosysalvosv2.ui.screens.AdminEstadisticaScreen
 import com.example.sanosysalvosv2.ui.screens.AdminMascotasScreen
+import com.example.sanosysalvosv2.ui.screens.AdminEditEntidadScreen
+import com.example.sanosysalvosv2.ui.screens.AdminEditPetScreen
 import com.example.sanosysalvosv2.ui.screens.AdminReportesScreen
 import com.example.sanosysalvosv2.ui.screens.AdminUsuariosScreen
-import com.example.sanosysalvosv2.ui.screens.AddPetScreen
+import com.example.sanosysalvosv2.ui.screens.AddEditPetScreen
 import com.example.sanosysalvosv2.ui.screens.CoincidenciasScreen
+import com.example.sanosysalvosv2.ui.screens.EditProfileScreen
 import com.example.sanosysalvosv2.ui.screens.NotificacionesScreen
 import com.example.sanosysalvosv2.ui.screens.InicioScreen
 import com.example.sanosysalvosv2.ui.screens.LoginScreen
@@ -56,15 +72,20 @@ import com.example.sanosysalvosv2.ui.screens.MapsScreen
 import com.example.sanosysalvosv2.ui.screens.MascotasScreen
 import com.example.sanosysalvosv2.ui.screens.PetDetailScreen
 import com.example.sanosysalvosv2.ui.screens.PerfilScreen
+import com.example.sanosysalvosv2.ui.screens.EditReportScreen
+import com.example.sanosysalvosv2.ui.screens.CreateReportScreen
 import com.example.sanosysalvosv2.ui.screens.ReporteDetailScreen
 import com.example.sanosysalvosv2.ui.screens.ReportesScreen
 import com.example.sanosysalvosv2.ui.screens.ReportPetScreen
 import com.example.sanosysalvosv2.ui.screens.RegisterScreen
 import com.example.sanosysalvosv2.ui.theme.SanosYSalvosV2Theme
 import com.example.sanosysalvosv2.viewmodel.AdminViewModel
+import com.example.sanosysalvosv2.viewmodel.UserReportsViewModel
 import com.example.sanosysalvosv2.viewmodel.AuthViewModel
 import com.example.sanosysalvosv2.viewmodel.MapsViewModel
 import com.example.sanosysalvosv2.viewmodel.PetViewModel
+import com.example.sanosysalvosv2.viewmodel.PetsViewModel
+import com.example.sanosysalvosv2.viewmodel.ProfileViewModel
 import org.osmdroid.config.Configuration
 
 class MainActivity : ComponentActivity() {
@@ -72,6 +93,9 @@ class MainActivity : ComponentActivity() {
     private val mapViewModel: MapsViewModel by viewModels()
     private val adminViewModel: AdminViewModel by viewModels()
     private val petViewModel: PetViewModel by viewModels()
+    private val petsViewModel: PetsViewModel by viewModels()
+    private val userReportsViewModel: UserReportsViewModel by viewModels()
+    private val profileViewModel: ProfileViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,6 +110,9 @@ class MainActivity : ComponentActivity() {
                         mapViewModel = mapViewModel,
                         adminViewModel = adminViewModel,
                         petViewModel = petViewModel,
+                        petsViewModel = petsViewModel,
+                        userReportsViewModel = userReportsViewModel,
+                        profileViewModel = profileViewModel,
                     )
                 }
             }
@@ -99,6 +126,9 @@ fun AppNav(
     mapViewModel: MapsViewModel,
     adminViewModel: AdminViewModel,
     petViewModel: PetViewModel,
+    petsViewModel: PetsViewModel,
+    userReportsViewModel: UserReportsViewModel,
+    profileViewModel: ProfileViewModel,
 ) {
     val navController = rememberNavController()
     val startDestination = if (authViewModel.isLoggedIn) {
@@ -145,6 +175,9 @@ fun AppNav(
                 authViewModel = authViewModel,
                 mapViewModel = mapViewModel,
                 petViewModel = petViewModel,
+                petsViewModel = petsViewModel,
+                userReportsViewModel = userReportsViewModel,
+                profileViewModel = profileViewModel,
                 onLogout = {
                     authViewModel.logout()
                     navController.navigate("login") {
@@ -174,14 +207,14 @@ private data class AdminNavItem(
 )
 
 private val adminBottomNavItems = listOf(
-    AdminNavItem(route = "admin_dashboard", label = "Dashboard", icon = Icons.Filled.Home),
+    AdminNavItem(route = "admin_dashboard", label = "Inicio", icon = Icons.Filled.Home),
     AdminNavItem(route = "admin_usuarios", label = "Usuarios", icon = Icons.Filled.Person),
     AdminNavItem(route = "admin_mascotas", label = "Mascotas", icon = Icons.Filled.Pets),
     AdminNavItem(route = "admin_reportes", label = "Reportes", icon = Icons.Filled.Description),
-    AdminNavItem(route = "admin_coincidencias", label = "Coincidencias", icon = Icons.Filled.TaskAlt),
+    AdminNavItem(route = "admin_coincidencias", label = "Coincid.", icon = Icons.Filled.TaskAlt),
     AdminNavItem(route = "admin_entidades", label = "Entidades", icon = Icons.Filled.Apartment),
-    AdminNavItem(route = "admin_estadistica", label = "Estadistica", icon = Icons.Filled.BarChart),
-    AdminNavItem(route = "admin_configuracion", label = "Configuración", icon = Icons.Filled.Settings),
+    AdminNavItem(route = "admin_estadistica", label = "Stats", icon = Icons.Filled.BarChart),
+    AdminNavItem(route = "admin_configuracion", label = "Config", icon = Icons.Filled.Settings),
 )
 
 private data class BottomNavItem(
@@ -203,6 +236,9 @@ private fun UserTabsScaffold(
     authViewModel: AuthViewModel,
     mapViewModel: MapsViewModel,
     petViewModel: PetViewModel,
+    petsViewModel: PetsViewModel,
+    userReportsViewModel: UserReportsViewModel,
+    profileViewModel: ProfileViewModel,
     onLogout: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -235,29 +271,31 @@ private fun UserTabsScaffold(
         ) {
             composable("inicio") {
                 InicioScreen(
-                    userName = "Camila",
                     onNavigateToNotifications = { tabNavController.navigate("notificaciones") },
                     onNavigateToAllNotifications = { tabNavController.navigate("notificaciones") },
                 )
             }
             composable("mascotas") {
                 MascotasScreen(
+                    petsViewModel = petsViewModel,
                     onNavigateBack = { tabNavController.popBackStack() },
                     onNavigateToAddPet = { tabNavController.navigate("add_pet") },
                     onNavigateToPetDetail = { petId -> tabNavController.navigate("pet_detail/$petId") },
+                    onNavigateToEditPet = { petId -> tabNavController.navigate("edit_pet/$petId") },
                 )
             }
             composable("reportes") {
                 ReportesScreen(
-                    onNavigateToNewReport = { tabNavController.navigate("report_pet") },
+                    reportViewModel = userReportsViewModel,
+                    onNavigateToNewReport = { tabNavController.navigate("create_report") },
                     onNavigateToReporteDetail = { reportId -> tabNavController.navigate("reporte_detail/$reportId") },
+                    onNavigateToEditReport = { reportId -> tabNavController.navigate("edit_report/$reportId") },
                 )
             }
             composable("mapas") { MapasScreen(mapViewModel = mapViewModel) }
             composable("perfil") {
                 PerfilScreen(
-                    authViewModel = authViewModel,
-                    sessionStore = sessionStore,
+                    profileViewModel = profileViewModel,
                     onNavigateBack = { tabNavController.popBackStack() },
                     onNavigateToPersonalInfo = { tabNavController.navigate("personal_info") },
                     onNavigateToNotifications = { tabNavController.navigate("notificaciones") },
@@ -265,15 +303,56 @@ private fun UserTabsScaffold(
                     onNavigateToLogin = onLogout,
                 )
             }
+            composable("personal_info") {
+                EditProfileScreen(
+                    profileViewModel = profileViewModel,
+                    onNavigateBack = { tabNavController.popBackStack() },
+                )
+            }
             composable("notificaciones") {
                 NotificacionesScreen(
                     onNavigateBack = { tabNavController.popBackStack() },
                 )
             }
-            composable("add_pet") { AddPetScreen() }
+            composable("add_pet") {
+                AddEditPetScreen(
+                    petViewModel = petsViewModel,
+                    petId = null,
+                    initialPet = null,
+                    onNavigateBack = { tabNavController.popBackStack() },
+                )
+            }
+            composable("edit_pet/{petId}") { backStackEntry ->
+                val petId = backStackEntry.arguments?.getString("petId").orEmpty()
+                LaunchedEffect(petId) {
+                    if (petId.isNotBlank()) {
+                        petsViewModel.loadPetDetails(petId)
+                    }
+                }
+                val selectedPet by petsViewModel.selectedPet.collectAsState()
+                if (selectedPet == null) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    AddEditPetScreen(
+                        petViewModel = petsViewModel,
+                        petId = petId,
+                        initialPet = selectedPet,
+                        onNavigateBack = { tabNavController.popBackStack() },
+                    )
+                }
+            }
             composable("pet_detail/{petId}") { backStackEntry ->
+                val petId = backStackEntry.arguments?.getString("petId").orEmpty()
                 PetDetailScreen(
-                    petId = backStackEntry.arguments?.getString("petId").orEmpty(),
+                    petViewModel = petsViewModel,
+                    petId = petId,
+                    onNavigateBack = { tabNavController.popBackStack() },
+                    onNavigateToEditPet = { id -> tabNavController.navigate("edit_pet/$id") },
                 )
             }
             composable("report_pet") {
@@ -282,9 +361,25 @@ private fun UserTabsScaffold(
                     onNavigateBack = { tabNavController.popBackStack() },
                 )
             }
+            composable("create_report") {
+                CreateReportScreen(
+                    navController = tabNavController,
+                )
+            }
             composable("reporte_detail/{reportId}") { backStackEntry ->
+                val reportId = backStackEntry.arguments?.getString("reportId").orEmpty()
                 ReporteDetailScreen(
-                    reportId = backStackEntry.arguments?.getString("reportId").orEmpty(),
+                    reportViewModel = userReportsViewModel,
+                    reportId = reportId,
+                    onNavigateBack = { tabNavController.popBackStack() },
+                    onNavigateToEditReport = { id -> tabNavController.navigate("edit_report/$id") },
+                )
+            }
+            composable("edit_report/{reportId}") { backStackEntry ->
+                val reportId = backStackEntry.arguments?.getString("reportId").orEmpty()
+                EditReportScreen(
+                    reportViewModel = userReportsViewModel,
+                    reportId = reportId,
                     onNavigateBack = { tabNavController.popBackStack() },
                 )
             }
@@ -293,7 +388,6 @@ private fun UserTabsScaffold(
                     onNavigateBack = { tabNavController.popBackStack() },
                 )
             }
-            composable("personal_info") { ScreenPlaceholder(title = "Información personal") }
             composable("ayuda") { ScreenPlaceholder(title = "Ayuda y soporte") }
         }
     }
@@ -342,12 +436,18 @@ private fun AdminTabsScaffold(
             }
             composable("admin_usuarios") {
                 AdminUsuariosScreen(
-                    adminViewModel = adminViewModel,
                     onLogout = onLogout,
                 )
             }
             composable("admin_mascotas") {
-                AdminMascotasScreen(onLogout = onLogout)
+                AdminMascotasScreen(onLogout = onLogout, onNavigateToEditPet = { petId ->
+                    if (petId == null) tabNavController.navigate("admin_edit_pet/null") else tabNavController.navigate("admin_edit_pet/$petId")
+                })
+            }
+            composable("admin_edit_pet/{petId}") { backStackEntry ->
+                val petIdArg = backStackEntry.arguments?.getString("petId")
+                val petId = petIdArg?.takeIf { it != "null" }
+                AdminEditPetScreen(petId = petId, onNavigateBack = { tabNavController.popBackStack() })
             }
             composable("admin_reportes") {
                 AdminReportesScreen(
@@ -364,10 +464,32 @@ private fun AdminTabsScaffold(
                 )
             }
             composable("admin_coincidencias") {
-                AdminCoincidenciasScreen(onLogout = onLogout)
+                AdminCoincidenciasScreen(
+                    onLogout = onLogout,
+                    onNavigateToMatchDetail = { matchId ->
+                        tabNavController.navigate("admin_match_detail/$matchId")
+                    },
+                )
+            }
+            composable("admin_match_detail/{matchId}") { backStackEntry ->
+                AdminMatchDetailScreen(
+                    matchId = backStackEntry.arguments?.getString("matchId").orEmpty(),
+                    onNavigateBack = { tabNavController.popBackStack() },
+                )
             }
             composable("admin_entidades") {
-                AdminEntidadesScreen(onLogout = onLogout)
+                AdminEntidadesScreen(
+                    onLogout = onLogout,
+                    onNavigateToEditEntidad = { entidadId ->
+                        val route = entidadId?.let { "admin_edit_entidad/$it" } ?: "admin_edit_entidad/null"
+                        tabNavController.navigate(route)
+                    },
+                )
+            }
+            composable("admin_edit_entidad/{entidadId}") { backStackEntry ->
+                val entidadIdArg = backStackEntry.arguments?.getString("entidadId")
+                val entidadId = entidadIdArg?.takeIf { it != "null" }
+                AdminEditEntidadScreen(entidadId = entidadId, onNavigateBack = { tabNavController.popBackStack() })
             }
             composable("admin_estadistica") {
                 AdminEstadisticaScreen(onLogout = onLogout)
@@ -403,14 +525,46 @@ private fun AdminBottomNavBar(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
 ) {
-    NavigationBar(modifier = Modifier.fillMaxWidth()) {
-        items.forEach { item ->
-            NavigationBarItem(
-                selected = currentRoute == item.route,
-                onClick = { onNavigate(item.route) },
-                icon = { Icon(imageVector = item.icon, contentDescription = item.label) },
-                label = { Text(item.label) },
-            )
+    val activeColor = Color(0xFF0F8A8A)
+    val inactiveColor = Color(0xFF9E9E9E)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .background(Color.White)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Divider(color = Color(0xFFE5E5E5), thickness = 1.dp)
+            NavigationBar(
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = Color.White,
+                tonalElevation = 0.dp,
+            ) {
+                items.forEach { item ->
+                    NavigationBarItem(
+                        selected = currentRoute == item.route,
+                        onClick = { onNavigate(item.route) },
+                        icon = {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.label,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        },
+                        label = {
+                            Text(item.label, fontSize = 9.sp)
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = activeColor,
+                            selectedTextColor = activeColor,
+                            unselectedIconColor = inactiveColor,
+                            unselectedTextColor = inactiveColor,
+                            indicatorColor = activeColor,
+                        ),
+                    )
+                }
+            }
         }
     }
 }

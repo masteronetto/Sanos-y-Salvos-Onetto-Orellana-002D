@@ -5,4 +5,6 @@ data class AdminUserSummary(
     val fullName: String,
     val email: String,
     val role: String,
+    val phone: String,
+    val status: String,
 )

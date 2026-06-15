@@ -1,15 +1,38 @@
+import java.net.InetSocketAddress
+import java.net.Socket
+
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
     id("com.android.application") version "9.2.1" apply false
     id("org.jetbrains.kotlin.plugin.compose") version "2.2.10" apply false
     id("org.springframework.boot") version "3.4.5" apply false
     id("io.spring.dependency-management") version "1.1.6" apply false
+    id("com.google.gms.google-services") version "4.4.4" apply false
+    id("org.sonarqube") version "4.4.1.3373"
     kotlin("jvm") version "2.1.10" apply false
     kotlin("plugin.spring") version "2.1.10" apply false
+
 }
 
-import java.net.InetSocketAddress
-import java.net.Socket
+// SonarQube Configuration
+sonar {
+    properties {
+        property("sonar.projectKey", "petfind-android")
+        property("sonar.projectName", "PetFind Android")
+        property("sonar.host.url", "http://localhost:9000")
+        property("sonar.token", System.getenv("SONAR_TOKEN") ?: "")
+        property("sonar.sources", "app/src/main")
+        property("sonar.tests", "app/src/test,app/src/androidTest")
+        property("sonar.android.lint.report", "app/build/reports/lint-results-debug.xml")
+        property("sonar.coverage.jacoco.xmlReportPaths", 
+                 "app/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml")
+        property("sonar.kotlin.file.suffixes", ".kt")
+        property("sonar.exclusions", 
+                 "**/BuildConfig.kt,**/R.kt,**/*Preview*,**/ui/theme/**")
+        property("sonar.gradle.skipCompile", "true")
+    }
+}
+
 
 // Development helpers: start/stop backend services (docker-compose)
 tasks.register("startBackendServices") {

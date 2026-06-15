@@ -27,6 +27,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import android.app.Application
+import com.example.sanosysalvosv2.viewmodel.AdminReportsViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -82,7 +91,32 @@ fun AdminReporteDetailScreen(
     reportId: String,
     onNavigateBack: () -> Unit,
 ) {
-    val report = mockReport.copy(id = reportId.ifBlank { mockReport.id })
+    val contextApp = LocalContext.current.applicationContext as Application
+    val vm = remember(contextApp) { AdminReportsViewModel(contextApp) }
+    val selected by vm.selectedReport.collectAsState()
+
+    LaunchedEffect(reportId) {
+        if (reportId.isNotBlank()) vm.loadReportDetails(reportId)
+    }
+
+    val report = selected?.let {
+        ReportDetailMock(
+            id = it.id,
+            petName = (it.species ?: it.breed ?: it.locationName) ?: "-",
+            status = it.status ?: "-",
+            species = it.species ?: "-",
+            breed = it.breed ?: "-",
+            sex = "-",
+            age = "-",
+            color = it.color ?: "-",
+            particularSigns = it.description ?: "-",
+            reporter = it.reporterId ?: "-",
+            phone = "-",
+            comuna = it.locationName ?: "-",
+            lostDate = it.eventDate ?: it.createdAt ?: "-",
+            lastLocation = it.locationName ?: "-",
+        )
+    } ?: mockReport.copy(id = reportId.ifBlank { mockReport.id })
 
     Column(
         modifier = Modifier
@@ -130,7 +164,14 @@ fun AdminReporteDetailScreen(
                 .background(Color(0xFFF2F2F2), RoundedCornerShape(22.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            selected?.photoUrl?.takeIf { it.isNotBlank() }?.let { photoUrl ->
+                AsyncImage(
+                    model = photoUrl,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            } ?: Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(imageVector = Icons.Filled.Pets, contentDescription = null, tint = GrayText, modifier = Modifier.size(80.dp))
                 Text(text = "Hero image", color = GrayText)
             }
@@ -168,11 +209,11 @@ fun AdminReporteDetailScreen(
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                InfoRow(label = "Especie", value = report.species)
-                InfoRow(label = "Raza", value = report.breed)
-                InfoRow(label = "Sexo", value = report.sex)
-                InfoRow(label = "Edad", value = report.age)
-                InfoRow(label = "Color", value = report.color)
+                InfoRow(label = "Nombre mascota", value = report.petName)
+                InfoRow(label = "Reportado por", value = report.reporter)
+                InfoRow(label = "Comuna", value = report.comuna)
+                InfoRow(label = "Fecha", value = report.lostDate)
+                InfoRow(label = "Ubicación", value = report.lastLocation)
             }
 
             Card(
@@ -182,7 +223,7 @@ fun AdminReporteDetailScreen(
                 border = androidx.compose.foundation.BorderStroke(1.dp, BorderColor),
             ) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(text = "Señales particulares", fontWeight = FontWeight.Bold)
+                    Text(text = "Descripción", fontWeight = FontWeight.Bold)
                     Text(text = report.particularSigns, color = GrayText)
                 }
             }
@@ -216,7 +257,7 @@ fun AdminReporteDetailScreen(
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedButton(
-                onClick = { /* placeholder */ },
+                onClick = { vm.rejectReport(report.id); onNavigateBack() },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, Red),
@@ -224,7 +265,7 @@ fun AdminReporteDetailScreen(
                 Text(text = "Rechaza reporte", color = Red, fontWeight = FontWeight.SemiBold)
             }
             Button(
-                onClick = { /* placeholder */ },
+                onClick = { vm.approveReport(report.id); onNavigateBack() },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Teal),

@@ -13,6 +13,7 @@ interface MapApi {
         @Header("Authorization") authHeader: String,
         @Query("lat") lat: Double,
         @Query("lng") lng: Double,
-        @Query("radiusMeters") radiusMeters: Int = 3000,
+        @Query("radius_meters") radiusMeters: Int = 3000,
+        @Query("type") type: String? = null,
     ): Response<NearbyReportsResponse>
 }
