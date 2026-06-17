@@ -93,6 +93,7 @@ fun EditProfileScreen(
                 }
                 profileViewModel.loadProfile()
                 isEditing = false
+                onNavigateBack()
             }
             is ProfileUiState.Error -> {
                 coroutineScope.launch {

@@ -115,9 +115,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun withDebugCredentialHint(message: String): String {
-        if (!BuildConfig.DEBUG) return message
-        if (!message.contains("Correo o contrasena incorrectos", ignoreCase = true)) return message
-        return "$message Usa admin+local@example.com / P@ssw0rd1 para pruebas locales"
+        return message
     }
 
     private fun showSuccessMessage(message: String) {

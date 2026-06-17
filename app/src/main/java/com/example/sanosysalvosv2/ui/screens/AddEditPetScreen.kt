@@ -66,6 +66,7 @@ fun AddEditPetScreen(
     petId: String?,
     initialPet: PetResponse?,
     onNavigateBack: () -> Unit,
+    onSaved: () -> Unit,
 ) {
     var name by remember { mutableStateOf(initialPet?.name.orEmpty()) }
 
@@ -163,7 +164,7 @@ fun AddEditPetScreen(
     LaunchedEffect(uiState) {
         message = when (uiState) {
             is PetsUiState.Saved -> {
-                onNavigateBack()
+                onSaved()
                 ""
             }
             is PetsUiState.Error -> (uiState as PetsUiState.Error).message

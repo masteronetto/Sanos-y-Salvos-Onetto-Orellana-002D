@@ -206,6 +206,11 @@ fun CreateReportScreen(
                                 snackbarHostState.showSnackbar("Por favor selecciona la especie.")
                             }
                         }
+                        formState.photoBase64.isBlank() -> {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Por favor agrega una foto para el reporte.")
+                            }
+                        }
                         (formState.latitude == 0.0 && formState.longitude == 0.0) -> {
                             coroutineScope.launch {
                                 snackbarHostState.showSnackbar("No se pudo obtener la ubicación. Actualiza la ubicación antes de enviar.")

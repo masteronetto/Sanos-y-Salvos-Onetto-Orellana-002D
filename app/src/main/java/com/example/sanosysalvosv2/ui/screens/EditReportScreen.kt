@@ -86,6 +86,7 @@ fun EditReportScreen(
     reportViewModel: UserReportsViewModel,
     reportId: String,
     onNavigateBack: () -> Unit,
+    onSaved: () -> Unit,
 ) {
     val selectedReport by reportViewModel.selectedReport.collectAsState()
     val uiState by reportViewModel.uiState.collectAsState()
@@ -186,6 +187,12 @@ fun EditReportScreen(
             longitude = selectedReport?.longitude ?: 0.0
             locationObtained = selectedReport?.latitude != null && selectedReport?.latitude != 0.0
             initialized = true
+        }
+    }
+
+    LaunchedEffect(uiState) {
+        if (uiState is UserReportsUiState.Updated) {
+            onSaved()
         }
     }
 

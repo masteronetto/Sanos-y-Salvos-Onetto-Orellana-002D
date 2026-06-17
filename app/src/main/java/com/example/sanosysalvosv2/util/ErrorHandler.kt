@@ -10,7 +10,7 @@ object ErrorHandler {
         return when (throwable) {
             is HttpException -> {
                 when (throwable.code()) {
-                    400 -> "Solicitud inválida"
+                    400 -> "Correo ya registrado"
                     401 -> "Sesión expirada. Por favor inicia sesión nuevamente"
                     403 -> "No tienes permisos para acceder"
                     404 -> "Recurso no encontrado"

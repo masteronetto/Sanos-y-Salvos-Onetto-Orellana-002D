@@ -1,4 +1,4 @@
-package com.example.sanosysalvosv2
+﻿package com.example.sanosysalvosv2
 
 import android.content.Intent
 import android.os.Bundle
@@ -136,7 +136,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
-        Timber.d("📬 New intent received")
+        Timber.d("ðŸ“¬ New intent received")
         setIntent(intent)
         handleNotificationIntent(intent)
     }
@@ -388,6 +388,15 @@ private fun UserTabsScaffold(
                     petId = null,
                     initialPet = null,
                     onNavigateBack = { tabNavController.popBackStack() },
+                    onSaved = {
+                        tabNavController.navigate("mascotas") {
+                            popUpTo(tabNavController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                 )
             }
             composable("edit_pet/{petId}") { backStackEntry ->
@@ -411,6 +420,15 @@ private fun UserTabsScaffold(
                         petId = petId,
                         initialPet = selectedPet,
                         onNavigateBack = { tabNavController.popBackStack() },
+                        onSaved = {
+                            tabNavController.navigate("mascotas") {
+                                popUpTo(tabNavController.graph.startDestinationId) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
                     )
                 }
             }
@@ -444,6 +462,15 @@ private fun UserTabsScaffold(
                     reportViewModel = userReportsViewModel,
                     reportId = reportId,
                     onNavigateBack = { tabNavController.popBackStack() },
+                    onSaved = {
+                        tabNavController.navigate("reportes") {
+                            popUpTo(tabNavController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                 )
             }
             composable("coincidencias") {
