@@ -18,6 +18,9 @@ data class PetRequest(
     @SerializedName("photoBase64")
     val photoBase64: String = "",
     val ownerId: String = "",
+    val status: String = "ACTIVO",
+    val dateOfBirth: String = "",
+    val notes: String = "",
 )
 
 data class PetResponse(
@@ -38,4 +41,8 @@ data class PetResponse(
     val photoBase64: String = "",
     val photoUrl: String?,
     val ownerId: String,
+    val status: String? = null,
+    val dateOfBirth: String? = null,
+    val notes: String? = null,
+    val createdAt: String? = null,
 )

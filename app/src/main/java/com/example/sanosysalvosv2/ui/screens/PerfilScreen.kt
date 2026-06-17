@@ -52,16 +52,9 @@ fun PerfilScreen(
     onNavigateToLogin: () -> Unit,
 ) {
     val uiState by profileViewModel.uiState.collectAsState()
-    val isLoggedOut by profileViewModel.isLoggedOut.collectAsState()
 
     LaunchedEffect(Unit) {
         profileViewModel.loadProfile()
-    }
-
-    LaunchedEffect(isLoggedOut) {
-        if (isLoggedOut) {
-            onNavigateToLogin()
-        }
     }
 
     val profile = when (uiState) {

@@ -1,4 +1,6 @@
-package com.example.sanosysalvosv2.model
+﻿package com.example.sanosysalvosv2.model
+
+import com.google.gson.annotations.SerializedName
 
 data class CollaboratorRequest(
     val name: String,
@@ -21,14 +23,4 @@ data class CollaboratorResponse(
     val status: String = "",
     val latitude: Double? = null,
     val longitude: Double? = null,
-)
-
-data class CollaboratorsListWrapper(
-    val itemsReceived: Int = 0,
-    val curPage: Int = 0,
-    val nextPage: Int? = null,
-    val prevPage: Int? = null,
-    val offset: Int = 0,
-    val perPage: Int = 0,
-    val items: List<CollaboratorResponse> = emptyList()
 )

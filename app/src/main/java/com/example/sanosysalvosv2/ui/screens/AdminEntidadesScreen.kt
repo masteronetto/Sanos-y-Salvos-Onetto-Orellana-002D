@@ -100,6 +100,10 @@ fun AdminEntidadesScreen(
     val viewModel: AdminEntidadesViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
 
+    LaunchedEffect(Unit) {
+        viewModel.loadEntidades()
+    }
+
     when (uiState) {
         is AdminEntidadesUiState.Loading -> {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {

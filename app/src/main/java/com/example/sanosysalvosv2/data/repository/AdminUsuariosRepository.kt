@@ -36,8 +36,16 @@ class AdminUsuariosRepository {
         return when (raw) {
             is List<*> -> raw.filterIsInstance<Map<String, Any?>>()
             is Map<*, *> -> {
-                val data = raw["data"]
-                if (data is List<*>) data.filterIsInstance<Map<String, Any?>>() else emptyList()
+                val candidateKeys = listOf("items", "data", "results", "list")
+                val extracted = candidateKeys.asSequence()
+                    .mapNotNull { raw[it] }
+                    .firstOrNull()
+
+                when (extracted) {
+                    is List<*> -> extracted.filterIsInstance<Map<String, Any?>>()
+                    is Map<*, *> -> listOf(extracted.filterKeys { it is String }.mapKeys { it.key as String } as Map<String, Any?>)
+                    else -> emptyList()
+                }
             }
             else -> emptyList()
         }

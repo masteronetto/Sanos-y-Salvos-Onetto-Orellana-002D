@@ -4,6 +4,10 @@ import com.example.sanosysalvosv2.data.api.AdminUsersApi
 import com.example.sanosysalvosv2.data.api.XanoRetrofitClient
 import com.example.sanosysalvosv2.model.AdminCreateUserRequest
 import com.example.sanosysalvosv2.model.AdminUserSummary
+import com.example.sanosysalvosv2.model.XanoUserResponse
+import com.google.gson.Gson
+import com.google.gson.JsonElement
+import com.google.gson.reflect.TypeToken
 import retrofit2.Response
 
 class AdminUsersRepository {
@@ -12,15 +16,31 @@ class AdminUsersRepository {
     suspend fun listUsers(token: String, page: Int = 1, perPage: Int = 1000): List<AdminUserSummary> {
         val response = api().getUsers(authHeader = "Bearer $token", page = page, perPage = perPage)
         if (!response.isSuccessful) {
-            val errorBody = try {
-                response.errorBody()?.string() ?: ""
-            } catch (e: Exception) {
-                "(error reading body: ${e.message})"
-            }
-            throw Exception("No se pudo listar usuarios: ${response.code()} ${response.message()} - $errorBody")
+            val errorBody = try { response.errorBody()?.string() ?: "" } catch (e: Exception) { "" }
+            throw Exception("No se pudo listar usuarios: ${response.code()} - $errorBody")
         }
-
-        return unwrapList(response.body()).map { mapUser(it) }
+        val body = response.body() ?: return emptyList()
+        val gson = Gson()
+        val rawList: List<XanoUserResponse> = when {
+            body.isJsonArray -> gson.fromJson(body, object : TypeToken<List<XanoUserResponse>>() {}.type)
+            body.isJsonObject -> {
+                val obj = body.asJsonObject
+                val key = listOf("items", "data", "results", "list").firstOrNull { obj.has(it) }
+                if (key != null) gson.fromJson(obj.get(key), object : TypeToken<List<XanoUserResponse>>() {}.type)
+                else emptyList()
+            }
+            else -> emptyList()
+        }
+        return rawList.map { u ->
+            AdminUserSummary(
+                id       = u.id?.toLong()?.toString() ?: "",
+                fullName = u.fullName ?: u.name ?: "Sin nombre",
+                email    = u.email ?: "",
+                phone    = u.phone ?: u.phoneNumber ?: "",
+                role     = u.role?.uppercase() ?: "USUARIO",
+                status   = u.status?.uppercase() ?: "ACTIVO",
+            )
+        }
     }
 
     suspend fun getUserById(token: String, id: String): AdminUserSummary {
@@ -59,18 +79,6 @@ class AdminUsersRepository {
     suspend fun deleteUser(token: String, id: String): Boolean {
         val response = api().deleteUser(authHeader = "Bearer $token", id = id)
         return response.isSuccessful
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    private fun unwrapList(raw: Any?): List<Map<String, Any?>> {
-        return when (raw) {
-            is List<*> -> raw.filterIsInstance<Map<String, Any?>>()
-            is Map<*, *> -> {
-                val data = raw["data"]
-                if (data is List<*>) data.filterIsInstance<Map<String, Any?>>() else emptyList()
-            }
-            else -> emptyList()
-        }
     }
 
     private fun mapUser(raw: Map<String, Any?>): AdminUserSummary {

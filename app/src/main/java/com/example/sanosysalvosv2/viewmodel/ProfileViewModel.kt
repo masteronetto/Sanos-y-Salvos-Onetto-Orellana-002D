@@ -32,9 +32,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     private val _uiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Loading)
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
-    private val _isLoggedOut = MutableStateFlow(false)
-    val isLoggedOut: StateFlow<Boolean> = _isLoggedOut.asStateFlow()
-
     private var currentUserId: String = ""
 
     fun loadProfile() {
@@ -93,7 +90,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             when (val result = repository.logout(token)) {
                 is MapsResult.Success -> {
                     sessionStore.clearSession()
-                    _isLoggedOut.value = true
                 }
                 is MapsResult.Error -> {
                     Log.e(tag, "logout failed: ${result.message}")

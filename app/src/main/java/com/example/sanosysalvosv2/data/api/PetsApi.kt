@@ -17,8 +17,8 @@ interface PetsApi {
         @Header("Authorization") authHeader: String,
         @retrofit2.http.Query("page") page: Int = 1,
         @retrofit2.http.Query("per_page") perPage: Int = 20,
-        @retrofit2.http.Query("species") species: String = "",
-        @retrofit2.http.Query("breed") breed: String = "",
+        @retrofit2.http.Query("species") species: String? = null,
+        @retrofit2.http.Query("breed") breed: String? = null,
     ): Response<Any>
 
     @GET("/api:sanos-y-salvos-pets/my")

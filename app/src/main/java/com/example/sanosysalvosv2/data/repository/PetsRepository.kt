@@ -25,7 +25,13 @@ class PetsRepository {
         Log.d(tag, "GET $url")
 
         return try {
-            val response = api().listPets(authHeader = "Bearer $token", page = page, perPage = perPage, species = species, breed = breed)
+            val response = api().listPets(
+                authHeader = "Bearer $token",
+                page = page,
+                perPage = perPage,
+                species = species.takeIf { it.isNotBlank() },
+                breed = breed.takeIf { it.isNotBlank() },
+            )
             if (!response.isSuccessful) {
                 val errorBody = try { response.errorBody()?.string() ?: "" } catch (_: Exception) { "(error reading body)" }
                 MapsResult.Error("${parseHttpError(response)} - $errorBody")
@@ -192,6 +198,10 @@ class PetsRepository {
         val photoUrl = raw["photoUrl"]?.toString() ?: raw["photo_url"]?.toString()
         val photoBase64 = raw["photoBase64"]?.toString() ?: raw["photo_base64"]?.toString() ?: ""
         val ownerId = raw["ownerId"]?.toString() ?: raw["owner_id"]?.toString() ?: ""
+        val status = raw["status"]?.toString() ?: raw["state"]?.toString() ?: raw["petStatus"]?.toString()
+        val dateOfBirth = raw["dateOfBirth"]?.toString() ?: raw["birthdate"]?.toString() ?: raw["dob"]?.toString()
+        val notes = raw["notes"]?.toString() ?: raw["history"]?.toString() ?: raw["description"]?.toString()
+        val createdAt = raw["createdAt"]?.toString() ?: raw["created_at"]?.toString() ?: raw["registeredAt"]?.toString()
 
         return PetResponse(
             id = id,
@@ -207,6 +217,10 @@ class PetsRepository {
             photoBase64 = photoBase64,
             photoUrl = photoUrl,
             ownerId = ownerId,
+            status = status,
+            dateOfBirth = dateOfBirth,
+            notes = notes,
+            createdAt = createdAt,
         )
     }
 

@@ -23,6 +23,10 @@ data class ReportResponse(
     val type: String,
     @SerializedName(value = "reporterId", alternate = ["reporter_id"])
     val reporterId: String?,
+    @SerializedName(value = "reporterName", alternate = ["reporter_name"])
+    val reporterName: String?,
+    @SerializedName(value = "reporterPhone", alternate = ["reporter_phone"])
+    val reporterPhone: String?,
     val description: String?,
     val status: String?,
     val latitude: Double?,

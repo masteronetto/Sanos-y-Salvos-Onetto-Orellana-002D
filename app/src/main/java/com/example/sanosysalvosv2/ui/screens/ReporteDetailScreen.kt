@@ -256,7 +256,11 @@ fun ReporteDetailScreen(
                 ReporteInfoRow("ID del reporte", reporte.id)
                 ReporteInfoRow("Tipo", reportTypeText)
                 ReporteInfoRow("Estado", TranslationUtils.reportStatus(reporte.status))
-                ReporteInfoRow("Reportado por", reporte.reporterId.orEmpty().ifBlank { "Desconocido" })
+                val reporterName = reporte.reporterName?.takeIf { it.isNotBlank() } ?: reporte.reporterId
+                val reporterPhone = reporte.reporterPhone?.takeIf { it.isNotBlank() }
+
+                ReporteInfoRow("Reportado por", reporterName.orEmpty().ifBlank { "Desconocido" })
+                ReporteInfoRow("Teléfono", reporterPhone.orEmpty().ifBlank { "No disponible" })
                 ReporteInfoRow("Comuna", reporte.locationName.orEmpty().ifBlank { "No disponible" })
                 ReporteInfoRow("Fecha", (reporte.eventDate ?: reporte.createdAt).orEmpty().ifBlank { "No disponible" })
                 ReporteInfoRow("Ubicación", reporte.locationName.orEmpty().ifBlank { "No disponible" })

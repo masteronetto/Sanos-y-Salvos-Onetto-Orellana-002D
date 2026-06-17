@@ -380,9 +380,7 @@ private fun UserTabsScaffold(
                 )
             }
             composable("notificaciones") {
-                NotificacionesScreen(
-                    onNavigateBack = { tabNavController.popBackStack() },
-                )
+                NotificacionesScreen(navController = tabNavController)
             }
             composable("add_pet") {
                 AddEditPetScreen(

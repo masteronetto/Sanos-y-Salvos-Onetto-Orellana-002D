@@ -11,5 +11,6 @@ data class NearbyReport(
     val photoUrl: String? = null,
     val photoBase64: String? = null,
     val reporterName: String? = null,
+    val reporterPhone: String? = null,
     val reportId: String? = null,
 )

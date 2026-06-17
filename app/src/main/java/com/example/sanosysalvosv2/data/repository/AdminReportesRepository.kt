@@ -7,6 +7,9 @@ import com.example.sanosysalvosv2.data.api.XanoRetrofitClient
 import com.example.sanosysalvosv2.model.AdminReportDetailResponse
 import com.example.sanosysalvosv2.model.AdminReportSummary
 import com.example.sanosysalvosv2.model.AdminReportSummaryResponse
+import com.google.gson.Gson
+import com.google.gson.JsonElement
+import com.google.gson.reflect.TypeToken
 import java.io.IOException
 import retrofit2.HttpException
 import retrofit2.Response
@@ -29,7 +32,8 @@ class AdminReportesRepository {
                 if (body == null) {
                     MapsResult.Error("Lista de reportes vacía")
                 } else {
-                    val summaries = body.map { r ->
+                    val reportResponses = parseReportsJson(body)
+                    val summaries = reportResponses.map { r ->
                         AdminReportSummary(
                             id = r.id,
                             name = r.petName ?: "-",
@@ -114,5 +118,32 @@ class AdminReportesRepository {
         }
         val detail = backendError ?: response.message().ifBlank { "sin detalle" }
         return "Reportes API fallido: ${response.code()} - $detail"
+    }
+
+    private fun parseReportsJson(body: JsonElement?): List<AdminReportSummaryResponse> {
+        if (body == null || body.isJsonNull) return emptyList()
+        val gson = Gson()
+        return try {
+            if (body.isJsonArray) {
+                gson.fromJson(body, object : TypeToken<List<AdminReportSummaryResponse>>() {}.type)
+            } else if (body.isJsonObject) {
+                val obj = body.asJsonObject
+                val candidateKeys = listOf("data", "results", "items", "reports", "list")
+                for (key in candidateKeys) {
+                    if (obj.has(key)) {
+                        val el = obj.get(key)
+                        if (el.isJsonArray) {
+                            return gson.fromJson(el, object : TypeToken<List<AdminReportSummaryResponse>>() {}.type)
+                        }
+                    }
+                }
+                gson.fromJson(body, object : TypeToken<List<AdminReportSummaryResponse>>() {}.type)
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            Log.e(tag, "Failed to parse admin report summaries JSON", e)
+            emptyList()
+        }
     }
 }

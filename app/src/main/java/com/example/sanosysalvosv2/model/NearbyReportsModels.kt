@@ -21,6 +21,8 @@ data class NearbyReportMarker(
     val photoBase64: String? = null,
     @SerializedName(value = "reporterName", alternate = ["reporter_name"])
     val reporterName: String? = null,
+    @SerializedName(value = "reporterPhone", alternate = ["reporter_phone"])
+    val reporterPhone: String? = null,
 )
 
 data class NearbyReportsResponse(

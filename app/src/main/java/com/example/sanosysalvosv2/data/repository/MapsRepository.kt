@@ -50,6 +50,7 @@ class MapsRepository {
                             photoUrl = marker.photoUrl,
                             photoBase64 = marker.photoBase64,
                             reporterName = marker.reporterName,
+                            reporterPhone = marker.reporterPhone,
                             reportId = marker.reportId,
                         )
                     }

@@ -1,6 +1,7 @@
 package com.example.sanosysalvosv2.ui.screens
 
 import android.annotation.SuppressLint
+import android.app.DatePickerDialog
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -49,9 +50,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-// Removed KeyboardOptions/KeyboardType imports (not used)
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import java.util.Calendar
 import com.example.sanosysalvosv2.model.PetRequest
 import com.example.sanosysalvosv2.model.PetResponse
 import com.example.sanosysalvosv2.ui.components.PrimaryButton
@@ -84,6 +85,10 @@ fun AdminEditPetScreen(
     var hasMicrochip by remember { mutableStateOf(selectedPet?.hasMicrochip ?: false) }
     var isNeutered by remember { mutableStateOf(selectedPet?.isNeutered ?: false) }
     var ownerId by remember { mutableStateOf(selectedPet?.ownerId.orEmpty()) }
+    var status by remember { mutableStateOf(selectedPet?.status ?: "ACTIVO") }
+    var dateOfBirth by remember { mutableStateOf(selectedPet?.dateOfBirth.orEmpty()) }
+    var notes by remember { mutableStateOf(selectedPet?.notes.orEmpty()) }
+    var createdAt by remember { mutableStateOf(selectedPet?.createdAt.orEmpty()) }
     var photoUri by remember { mutableStateOf<Uri?>(null) }
     var photoBase64 by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
@@ -113,6 +118,10 @@ fun AdminEditPetScreen(
             hasMicrochip = selectedPet?.hasMicrochip ?: false
             isNeutered = selectedPet?.isNeutered ?: false
             ownerId = selectedPet?.ownerId.orEmpty()
+            status = selectedPet?.status ?: "ACTIVO"
+            dateOfBirth = selectedPet?.dateOfBirth.orEmpty()
+            notes = selectedPet?.notes.orEmpty()
+            createdAt = selectedPet?.createdAt.orEmpty()
         }
     }
 
@@ -222,6 +231,68 @@ fun AdminEditPetScreen(
                 onSelected = { size = it },
             )
 
+            DropdownField(
+                label = "Estado",
+                selected = status,
+                options = listOf("ACTIVO", "INACTIVO", "ADOPTADO"),
+                onSelected = { status = it },
+            )
+
+            val calendar = remember { Calendar.getInstance() }
+            val (year, month, day) = remember(dateOfBirth) {
+                dateOfBirth.split("-").let { parts ->
+                    if (parts.size == 3) {
+                        val y = parts[0].toIntOrNull() ?: calendar.get(Calendar.YEAR)
+                        val m = parts[1].toIntOrNull()?.minus(1) ?: calendar.get(Calendar.MONTH)
+                        val d = parts[2].toIntOrNull() ?: calendar.get(Calendar.DAY_OF_MONTH)
+                        Triple(y, m, d)
+                    } else {
+                        Triple(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH))
+                    }
+                }
+            }
+            val datePickerDialog = remember(dateOfBirth) {
+                DatePickerDialog(
+                    context,
+                    { _, pickedYear, pickedMonth, pickedDay ->
+                        dateOfBirth = String.format("%04d-%02d-%02d", pickedYear, pickedMonth + 1, pickedDay)
+                    },
+                    year,
+                    month,
+                    day,
+                )
+            }
+
+            OutlinedTextField(
+                value = dateOfBirth,
+                onValueChange = {},
+                label = { Text("Fecha de nacimiento") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { datePickerDialog.show() },
+                readOnly = true,
+                singleLine = true,
+                placeholder = { Text("YYYY-MM-DD") },
+            )
+
+            OutlinedTextField(
+                value = notes,
+                onValueChange = { notes = it },
+                label = { Text("Notas") },
+                modifier = Modifier.fillMaxWidth(),
+                maxLines = 4,
+            )
+
+            if (petId != null) {
+                OutlinedTextField(
+                    value = createdAt,
+                    onValueChange = {},
+                    label = { Text("Creado en") },
+                    modifier = Modifier.fillMaxWidth(),
+                    readOnly = true,
+                )
+            }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -309,7 +380,10 @@ fun AdminEditPetScreen(
                             hasMicrochip = hasMicrochip,
                             isNeutered = isNeutered,
                             photoBase64 = photoBase64,
-                            ownerId = if (petId == null) ownerId.trim() else ownerId,
+                            ownerId = ownerId.trim(),
+                            status = status,
+                            dateOfBirth = dateOfBirth.trim(),
+                            notes = notes.trim(),
                         )
                         if (petId == null) {
                             viewModel.createPet(request)

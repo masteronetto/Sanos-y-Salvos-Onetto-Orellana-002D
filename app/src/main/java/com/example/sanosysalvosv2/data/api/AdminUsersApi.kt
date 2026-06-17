@@ -1,6 +1,7 @@
 package com.example.sanosysalvosv2.data.api
 
 import com.example.sanosysalvosv2.model.AdminCreateUserRequest
+import com.google.gson.JsonElement
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -17,7 +18,7 @@ interface AdminUsersApi {
         @Header("Authorization") authHeader: String,
         @Query("page") page: Int = 1,
         @Query("per_page") perPage: Int = 1000,
-    ): Response<Any>
+    ): Response<JsonElement>
 
     @GET("/api:sanos-y-salvos-users/get_by_id/{id}")
     suspend fun getUserById(

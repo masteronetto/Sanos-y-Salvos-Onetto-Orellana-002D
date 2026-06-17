@@ -6,6 +6,8 @@ import com.example.sanosysalvosv2.data.api.AdminCoincidenciasApi
 import com.example.sanosysalvosv2.data.api.XanoRetrofitClient
 import com.example.sanosysalvosv2.model.AdminCoincidenciaDetailResponse
 import com.example.sanosysalvosv2.model.AdminCoincidenciaSummary
+import com.example.sanosysalvosv2.model.AdminCoincidenciaSummaryResponse
+import com.google.gson.JsonElement
 import java.io.IOException
 import retrofit2.HttpException
 import retrofit2.Response
@@ -25,22 +27,8 @@ class AdminCoincidenciasRepository {
                 MapsResult.Error(parseHttpError(response))
             } else {
                 val body = response.body()
-                if (body == null) {
-                    MapsResult.Error("Lista de coincidencias vacía")
-                } else {
-                    val matches = body.map { item ->
-                        AdminCoincidenciaSummary(
-                            id = item.id,
-                            sourceName = item.sourcePetName.orEmpty(),
-                            matchedName = item.matchedPetName.orEmpty(),
-                            score = item.score ?: 0,
-                            status = item.status.orEmpty(),
-                            comuna = item.comuna.orEmpty(),
-                            date = item.createdAt.orEmpty(),
-                        )
-                    }
-                    MapsResult.Success(matches)
-                }
+                val matches = parseMatchesJson(body)
+                MapsResult.Success(matches)
             }
         } catch (e: IOException) {
             MapsResult.Error("Error de red al listar coincidencias: ${e.message ?: "sin detalle"}")
@@ -50,6 +38,50 @@ class AdminCoincidenciasRepository {
             MapsResult.Error(e.message ?: "Error inesperado al listar coincidencias")
         }
     }
+
+    private fun parseMatchesJson(body: JsonElement?): List<AdminCoincidenciaSummary> {
+        if (body == null || body.isJsonNull) return emptyList()
+        val gson = com.google.gson.Gson()
+        return try {
+            if (body.isJsonArray) {
+                val list: List<AdminCoincidenciaSummaryResponse> = gson.fromJson(body, object : com.google.gson.reflect.TypeToken<List<AdminCoincidenciaSummaryResponse>>() {}.type)
+                list.map { it.toSummary() }
+            } else if (body.isJsonObject) {
+                val obj = body.asJsonObject
+                val candidateKeys = listOf("data", "results", "items", "matches", "list")
+                for (key in candidateKeys) {
+                    if (obj.has(key)) {
+                        val el = obj.get(key)
+                        if (el.isJsonArray) {
+                            val list: List<AdminCoincidenciaSummaryResponse> = gson.fromJson(el, object : com.google.gson.reflect.TypeToken<List<AdminCoincidenciaSummaryResponse>>() {}.type)
+                            return list.map { it.toSummary() }
+                        }
+                    }
+                }
+                // Fallback: maybe the object itself is a single summary object or a list-typed object
+                if (obj.has("id")) {
+                    val single = gson.fromJson(body, AdminCoincidenciaSummaryResponse::class.java)
+                    return listOf(single.toSummary())
+                }
+                emptyList()
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            Log.e(tag, "Failed to parse matches JSON", e)
+            emptyList()
+        }
+    }
+
+    private fun AdminCoincidenciaSummaryResponse.toSummary() = AdminCoincidenciaSummary(
+        id = id,
+        sourceName = sourcePetName.orEmpty(),
+        matchedName = matchedPetName.orEmpty(),
+        score = score ?: 0,
+        status = status.orEmpty(),
+        comuna = comuna.orEmpty(),
+        date = createdAt.orEmpty(),
+    )
 
     suspend fun getMatchDetails(token: String, id: String): MapsResult<AdminCoincidenciaDetailResponse> {
         val requestUrl = "${BuildConfig.XANO_BASE_URL}api:sanos-y-salvos-matches/details/$id"

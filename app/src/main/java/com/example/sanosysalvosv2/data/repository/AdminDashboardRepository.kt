@@ -58,6 +58,7 @@ class AdminDashboardRepository {
     private suspend fun getActiveUsersCount(token: String): Int {
         return try {
             val users = usersRepo.listUsers(token)
+            Log.d(tag, "Users statuses from Xano: ${users.map { it.status }}")
             users.count { it.status.equals("ACTIVE", ignoreCase = true) }
         } catch (e: Exception) {
             Log.w(tag, "Error counting active users", e)
@@ -113,7 +114,9 @@ class AdminDashboardRepository {
 
     private suspend fun getEntitiesCount(token: String): Int {
         return try {
-            collaboratorsRepo.listCollaborators(token).size
+            val list = collaboratorsRepo.listCollaborators(token)
+            Log.d(tag, "Entities count from Xano: ${list.size}")
+            list.size
         } catch (e: Exception) {
             Log.w(tag, "Error counting entities", e)
             0

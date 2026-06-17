@@ -7,7 +7,10 @@ val ReportResponse.petName: String?
     get() = this.species ?: this.breed ?: this.locationName
 
 val ReportResponse.reportedBy: String?
-    get() = this.reporterId
+    get() = this.reporterName ?: this.reporterId
+
+val ReportResponse.reporterPhoneNumber: String?
+    get() = this.reporterPhone
 
 val ReportResponse.comuna: String?
     get() = this.locationName

@@ -106,7 +106,8 @@ class MapsViewModel(
                             status = report.type ?: "",
                             photoUrl = report.photoUrl,
                             photoBase64 = report.photoBase64 ?: "",
-                            reporterName = report.reporterId,
+                            reporterName = report.reporterName ?: report.reporterId,
+                            reporterPhone = report.reporterPhone,
                             reportId = report.id,
                         )
                     }

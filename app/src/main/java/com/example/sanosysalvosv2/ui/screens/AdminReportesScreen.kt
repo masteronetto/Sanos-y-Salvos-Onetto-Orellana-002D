@@ -30,10 +30,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.platform.LocalContext
-import android.app.Application
 import androidx.compose.runtime.getValue
-import com.example.sanosysalvosv2.viewmodel.UserReportsViewModel
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.sanosysalvosv2.viewmodel.AdminReportesUiState
+import com.example.sanosysalvosv2.viewmodel.AdminReportesViewModel
 import com.example.sanosysalvosv2.model.AdminReportSummary
 import com.example.sanosysalvosv2.util.TranslationUtils
 import androidx.compose.runtime.mutableIntStateOf
@@ -41,7 +43,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -86,8 +87,7 @@ fun AdminReportesScreen(
     onNavigateToReporteDetail: (String) -> Unit,
     onLogout: () -> Unit,
 ) {
-    val context = LocalContext.current
-    val viewModel = remember { UserReportsViewModel(context.applicationContext as Application) }
+    val viewModel: AdminReportesViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
@@ -100,22 +100,20 @@ fun AdminReportesScreen(
 
     LaunchedEffect(caseFilter, selectedStatus, selectedComuna) {
         val type = if (caseFilter == ReportCaseType.ALL) null else caseFilter.name
-        viewModel.loadAllReports(type = type)
+        val status = when (selectedStatus) {
+            ReportFilterStatus.ALL -> null
+            else -> selectedStatus.name
+        }
+        val comuna = when (selectedComuna) {
+            ReportComunaFilter.ALL -> null
+            else -> selectedComuna.label
+        }
+        viewModel.loadReports(type = type, status = status, comuna = comuna)
     }
 
     // Map UI state to list for display
     val reports: List<AdminReportSummary> = when (uiState) {
-        is com.example.sanosysalvosv2.viewmodel.UserReportsUiState.Success -> (uiState as com.example.sanosysalvosv2.viewmodel.UserReportsUiState.Success).reports.map { r ->
-            AdminReportSummary(
-                id = r.id,
-                name = if (r.species != null) TranslationUtils.species(r.species) else (r.breed ?: r.locationName ?: "-"),
-                reportedBy = r.reporterId ?: "-",
-                comuna = r.locationName ?: "-",
-                date = r.eventDate ?: r.createdAt ?: "-",
-                caseType = r.type ?: "",
-                status = r.status ?: "",
-            )
-        }
+        is AdminReportesUiState.Success -> (uiState as AdminReportesUiState.Success).reports
         else -> emptyList()
     }
 

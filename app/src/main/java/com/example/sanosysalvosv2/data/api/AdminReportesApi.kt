@@ -2,6 +2,7 @@ package com.example.sanosysalvosv2.data.api
 
 import com.example.sanosysalvosv2.model.AdminReportDetailResponse
 import com.example.sanosysalvosv2.model.AdminReportSummaryResponse
+import com.google.gson.JsonElement
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -17,7 +18,7 @@ interface AdminReportesApi {
         @Query("type") type: String? = null,
         @Query("status") status: String? = null,
         @Query("comuna") comuna: String? = null,
-    ): Response<List<AdminReportSummaryResponse>>
+    ): Response<JsonElement>
 
     @GET("/api:sanos-y-salvos-mascotas/reports/{id}")
     suspend fun getReport(

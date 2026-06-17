@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.sanosysalvosv2.data.repository.AdminReportesRepository
 import com.example.sanosysalvosv2.data.repository.MapsResult
 import com.example.sanosysalvosv2.data.session.SessionStore
+import com.example.sanosysalvosv2.model.AdminReportDetailResponse
 import com.example.sanosysalvosv2.model.AdminReportSummary
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,7 +39,10 @@ class AdminReportesViewModel(application: Application) : AndroidViewModel(applic
         loadReports()
     }
 
-    fun loadReports() {
+    private val _selectedReport = MutableStateFlow<AdminReportDetailResponse?>(null)
+    val selectedReport: StateFlow<AdminReportDetailResponse?> = _selectedReport.asStateFlow()
+
+    fun loadReports(type: String? = null, status: String? = null, comuna: String? = null) {
         viewModelScope.launch {
             _uiState.value = AdminReportesUiState.Loading
             val token = sessionStore.tokenFlow.first()
@@ -47,16 +51,35 @@ class AdminReportesViewModel(application: Application) : AndroidViewModel(applic
                 return@launch
             }
 
-            val type = when (_selectedFilter.value) {
+            val requestType = type ?: when (_selectedFilter.value) {
                 "LOST" -> "LOST"
                 "FOUND" -> "FOUND"
                 else -> null
             }
 
-            when (val result = repository.listReports(token, type = type, status = null, comuna = null)) {
+            when (val result = repository.listReports(token, type = requestType, status = status, comuna = comuna)) {
                 is MapsResult.Success -> _uiState.value = AdminReportesUiState.Success(result.data)
                 is MapsResult.Error -> {
                     Log.e(tag, "loadReports failed: ${result.message}")
+                    _uiState.value = AdminReportesUiState.Error(result.message)
+                }
+            }
+        }
+    }
+
+    fun loadReportDetails(reportId: String) {
+        viewModelScope.launch {
+            _selectedReport.value = null
+            val token = sessionStore.tokenFlow.first()
+            if (token.isNullOrBlank()) {
+                _uiState.value = AdminReportesUiState.Error("Sesión no válida")
+                return@launch
+            }
+
+            when (val result = repository.getReport(token, reportId)) {
+                is MapsResult.Success -> _selectedReport.value = result.data
+                is MapsResult.Error -> {
+                    Log.e(tag, "loadReportDetails failed: ${result.message}")
                     _uiState.value = AdminReportesUiState.Error(result.message)
                 }
             }

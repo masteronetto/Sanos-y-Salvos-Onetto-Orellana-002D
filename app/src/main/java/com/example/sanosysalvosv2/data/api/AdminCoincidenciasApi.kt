@@ -2,6 +2,7 @@ package com.example.sanosysalvosv2.data.api
 
 import com.example.sanosysalvosv2.model.AdminCoincidenciaDetailResponse
 import com.example.sanosysalvosv2.model.AdminCoincidenciaSummaryResponse
+import com.google.gson.JsonElement
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Header
@@ -12,7 +13,7 @@ interface AdminCoincidenciasApi {
     @GET("/api:sanos-y-salvos-matches/list")
     suspend fun listMatches(
         @Header("Authorization") authHeader: String,
-    ): Response<List<AdminCoincidenciaSummaryResponse>>
+    ): Response<JsonElement>
 
     @GET("/api:sanos-y-salvos-matches/details/{id}")
     suspend fun getMatchDetails(

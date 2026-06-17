@@ -35,7 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import android.app.Application
-import com.example.sanosysalvosv2.viewmodel.AdminReportsViewModel
+import com.example.sanosysalvosv2.viewmodel.AdminReportesViewModel
 import com.example.sanosysalvosv2.util.TranslationUtils
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -90,7 +90,7 @@ fun AdminReporteDetailScreen(
     onNavigateBack: () -> Unit,
 ) {
     val contextApp = LocalContext.current.applicationContext as Application
-    val vm = remember(contextApp) { AdminReportsViewModel(contextApp) }
+    val vm = remember(contextApp) { AdminReportesViewModel(contextApp) }
     val selected by vm.selectedReport.collectAsState()
 
     LaunchedEffect(reportId) {
