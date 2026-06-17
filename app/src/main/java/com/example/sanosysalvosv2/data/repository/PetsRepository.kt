@@ -14,14 +14,21 @@ class PetsRepository {
     private val tag = "PetsRepository"
     private fun api(): PetsApi = XanoRetrofitClient.retrofit.create(PetsApi::class.java)
 
-    suspend fun listPets(token: String): MapsResult<List<PetResponse>> {
-        val url = "${BuildConfig.XANO_BASE_URL}api:sanos-y-salvos-pets/list"
+    suspend fun listPets(
+        token: String,
+        page: Int = 1,
+        perPage: Int = 20,
+        species: String = "",
+        breed: String = "",
+    ): MapsResult<List<PetResponse>> {
+        val url = "${BuildConfig.XANO_BASE_URL}api:sanos-y-salvos-pets/list?page=$page&per_page=$perPage&species=$species&breed=$breed"
         Log.d(tag, "GET $url")
 
         return try {
-            val response = api().listPets(authHeader = "Bearer $token")
+            val response = api().listPets(authHeader = "Bearer $token", page = page, perPage = perPage, species = species, breed = breed)
             if (!response.isSuccessful) {
-                MapsResult.Error(parseHttpError(response))
+                val errorBody = try { response.errorBody()?.string() ?: "" } catch (_: Exception) { "(error reading body)" }
+                MapsResult.Error("${parseHttpError(response)} - $errorBody")
             } else {
                 parsePetsListResponse(response.body())
             }

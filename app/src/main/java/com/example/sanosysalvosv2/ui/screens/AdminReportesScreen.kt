@@ -35,6 +35,7 @@ import android.app.Application
 import androidx.compose.runtime.getValue
 import com.example.sanosysalvosv2.viewmodel.UserReportsViewModel
 import com.example.sanosysalvosv2.model.AdminReportSummary
+import com.example.sanosysalvosv2.util.TranslationUtils
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
@@ -107,7 +108,7 @@ fun AdminReportesScreen(
         is com.example.sanosysalvosv2.viewmodel.UserReportsUiState.Success -> (uiState as com.example.sanosysalvosv2.viewmodel.UserReportsUiState.Success).reports.map { r ->
             AdminReportSummary(
                 id = r.id,
-                name = r.species ?: r.breed ?: r.locationName ?: "-",
+                name = if (r.species != null) TranslationUtils.species(r.species) else (r.breed ?: r.locationName ?: "-"),
                 reportedBy = r.reporterId ?: "-",
                 comuna = r.locationName ?: "-",
                 date = r.eventDate ?: r.createdAt ?: "-",
@@ -262,7 +263,12 @@ private fun ReportRow(
             TableCell(report.reportedBy, 160.dp)
             TableCell(report.comuna, 100.dp)
             TableCell(report.date, 100.dp)
-            TableCell(report.status, 90.dp, color = reportStatusColorFromString(report.status), bold = true)
+            TableCell(
+                text = TranslationUtils.reportStatus(report.status),
+                width = 90.dp,
+                color = TranslationUtils.statusColor(report.status),
+                bold = true
+            )
         }
 
         Spacer(
@@ -368,13 +374,6 @@ private fun reportStatusColor(status: ReportFilterStatus): Color = when (status)
     ReportFilterStatus.APPROVED -> ResolvedTeal
     ReportFilterStatus.REJECTED -> RejectedRed
     ReportFilterStatus.ALL -> Color.Black
-}
-
-private fun reportStatusColorFromString(status: String): Color = when (status.uppercase()) {
-    "PENDING" -> PendingOrange
-    "APPROVED", "RESOLVED" -> ResolvedTeal
-    "REJECTED" -> RejectedRed
-    else -> Color.Black
 }
 
 @Composable

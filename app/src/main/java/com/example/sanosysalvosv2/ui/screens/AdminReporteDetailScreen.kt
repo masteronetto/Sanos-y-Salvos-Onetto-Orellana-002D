@@ -36,6 +36,7 @@ import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import android.app.Application
 import com.example.sanosysalvosv2.viewmodel.AdminReportsViewModel
+import com.example.sanosysalvosv2.util.TranslationUtils
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,10 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 private val Teal = Color(0xFF0F8A8A)
-private val TealDark = Color(0xFF0F5B5B)
-private val TealSoft = Color(0xFFEAF7F6)
 private val Red = Color(0xFFC53B3B)
-private val RedSoft = Color(0xFFFDECEC)
 private val BorderColor = Color(0xFFD7E5E3)
 private val GrayText = Color(0xFF7A7A7A)
 private val DarkGreen = Color(0xFF0E5B3D)
@@ -102,9 +100,9 @@ fun AdminReporteDetailScreen(
     val report = selected?.let {
         ReportDetailMock(
             id = it.id,
-            petName = (it.species ?: it.breed ?: it.locationName) ?: "-",
+            petName = if (it.species != null) TranslationUtils.species(it.species) else (it.breed ?: it.locationName ?: "-"),
             status = it.status ?: "-",
-            species = it.species ?: "-",
+            species = TranslationUtils.species(it.species),
             breed = it.breed ?: "-",
             sex = "-",
             age = "-",
@@ -204,7 +202,7 @@ fun AdminReporteDetailScreen(
                 fontWeight = FontWeight.Bold,
                 color = Color.Black,
             )
-            StatusBadge(text = report.status)
+            StatusBadge(text = TranslationUtils.reportStatus(report.status), color = TranslationUtils.statusColor(report.status))
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
@@ -249,7 +247,7 @@ fun AdminReporteDetailScreen(
                 DetailKeyValue(label = "Comuna", value = report.comuna)
                 DetailKeyValue(label = "Fecha de pérdida", value = report.lostDate)
                 DetailKeyValue(label = "Última ubicación", value = report.lastLocation)
-                DetailKeyValue(label = "Estado", value = report.status, valueColor = if (report.status == "Perdida") Red else Teal)
+                DetailKeyValue(label = "Estado", value = TranslationUtils.reportStatus(report.status), valueColor = TranslationUtils.statusColor(report.status))
             }
         }
 
@@ -293,9 +291,9 @@ private fun ThumbnailBox(
 }
 
 @Composable
-private fun StatusBadge(text: String) {
-    val background = if (text.equals("Perdida", ignoreCase = true)) RedSoft else TealSoft
-    val foreground = if (text.equals("Perdida", ignoreCase = true)) Red else TealDark
+private fun StatusBadge(text: String, color: Color) {
+    val background = color.copy(alpha = 0.12f)
+    val foreground = color
 
     Box(
         modifier = Modifier

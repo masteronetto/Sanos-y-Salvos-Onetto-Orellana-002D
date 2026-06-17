@@ -9,10 +9,15 @@ import retrofit2.Response
 class AdminUsersRepository {
     private fun api(): AdminUsersApi = XanoRetrofitClient.retrofit.create(AdminUsersApi::class.java)
 
-    suspend fun listUsers(token: String): List<AdminUserSummary> {
-        val response = api().getUsers(authHeader = "Bearer $token")
+    suspend fun listUsers(token: String, page: Int = 1, perPage: Int = 1000): List<AdminUserSummary> {
+        val response = api().getUsers(authHeader = "Bearer $token", page = page, perPage = perPage)
         if (!response.isSuccessful) {
-            throw Exception("No se pudo listar usuarios: ${response.code()} ${response.message()}")
+            val errorBody = try {
+                response.errorBody()?.string() ?: ""
+            } catch (e: Exception) {
+                "(error reading body: ${e.message})"
+            }
+            throw Exception("No se pudo listar usuarios: ${response.code()} ${response.message()} - $errorBody")
         }
 
         return unwrapList(response.body()).map { mapUser(it) }

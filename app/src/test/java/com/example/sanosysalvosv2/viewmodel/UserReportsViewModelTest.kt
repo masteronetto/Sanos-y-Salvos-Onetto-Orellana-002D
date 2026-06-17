@@ -54,26 +54,34 @@ class UserReportsViewModelTest {
             ReportResponse(
                 id = "1",
                 type = "LOST",
-                petName = "Buddy",
-                petPhotoUrl = null,
-                reportedBy = "user1",
-                comuna = "Ñuñoa",
-                date = "2024-01-01",
+                reporterId = "user1",
+                latitude = -33.8688,
+                longitude = -71.5305,
+                locationName = "Central Park",
+                eventDate = "2024-01-01",
+                photoUrl = null,
+                species = "Perro",
+                breed = "Labrador",
+                color = "Brown",
                 status = "OPEN",
-                location = "Central Park",
-                description = "Lost dog"
+                description = "Lost dog",
+                createdAt = "2024-01-01T10:00:00Z"
             ),
             ReportResponse(
                 id = "2",
                 type = "FOUND",
-                petName = "Whiskers",
-                petPhotoUrl = null,
-                reportedBy = "user2",
-                comuna = "Providencia",
-                date = "2024-01-02",
+                reporterId = "user2",
+                latitude = -33.8800,
+                longitude = -71.5400,
+                locationName = "Plaza Italia",
+                eventDate = "2024-01-02",
+                photoUrl = null,
+                species = "Gato",
+                breed = "Siames",
+                color = "White",
                 status = "OPEN",
-                location = "Plaza Italia",
-                description = "Found cat"
+                description = "Found cat",
+                createdAt = "2024-01-02T10:00:00Z"
             )
         )
         
@@ -100,14 +108,18 @@ class UserReportsViewModelTest {
         val resolvedReport = ReportResponse(
             id = reportId,
             type = "LOST",
-            petName = "Buddy",
-            petPhotoUrl = null,
-            reportedBy = "user1",
-            comuna = "Ñuñoa",
-            date = "2024-01-01",
+            reporterId = "user1",
+            latitude = -33.8688,
+            longitude = -71.5305,
+            locationName = "Central Park",
+            eventDate = "2024-01-01",
+            photoUrl = null,
+            species = "Perro",
+            breed = "Labrador",
+            color = "Brown",
             status = "RESOLVED",
-            location = "Central Park",
-            description = "Lost dog"
+            description = "Lost dog",
+            createdAt = "2024-01-01T10:00:00Z"
         )
         
         doReturn(flowOf("valid-token"))
@@ -133,38 +145,50 @@ class UserReportsViewModelTest {
             ReportResponse(
                 id = "1",
                 type = "LOST",
-                petName = "Buddy",
-                petPhotoUrl = null,
-                reportedBy = "user1",
-                comuna = "Ñuñoa",
-                date = "2024-01-01",
+                reporterId = "user1",
+                latitude = -33.8688,
+                longitude = -71.5305,
+                locationName = "Central Park",
+                eventDate = "2024-01-01",
+                photoUrl = null,
+                species = "Perro",
+                breed = "Labrador",
+                color = "Brown",
                 status = "OPEN",
-                location = "Central Park",
-                description = "Lost dog"
+                description = "Lost dog",
+                createdAt = "2024-01-01T10:00:00Z"
             ),
             ReportResponse(
                 id = "2",
                 type = "LOST",
-                petName = "Fluffy",
-                petPhotoUrl = null,
-                reportedBy = "user2",
-                comuna = "Providencia",
-                date = "2024-01-02",
+                reporterId = "user2",
+                latitude = -33.8900,
+                longitude = -71.5400,
+                locationName = "Park",
+                eventDate = "2024-01-02",
+                photoUrl = null,
+                species = "Gato",
+                breed = "Criollo",
+                color = "Gray",
                 status = "OPEN",
-                location = "Park",
-                description = "Lost cat"
+                description = "Lost cat",
+                createdAt = "2024-01-02T10:00:00Z"
             ),
             ReportResponse(
                 id = "3",
                 type = "FOUND",
-                petName = "Whiskers",
-                petPhotoUrl = null,
-                reportedBy = "user3",
-                comuna = "Ñuñoa",
-                date = "2024-01-03",
+                reporterId = "user3",
+                latitude = -33.8700,
+                longitude = -71.5350,
+                locationName = "Street",
+                eventDate = "2024-01-03",
+                photoUrl = null,
+                species = "Gato",
+                breed = "Siames",
+                color = "White",
                 status = "OPEN",
-                location = "Street",
-                description = "Found cat"
+                description = "Found cat",
+                createdAt = "2024-01-03T10:00:00Z"
             )
         )
         

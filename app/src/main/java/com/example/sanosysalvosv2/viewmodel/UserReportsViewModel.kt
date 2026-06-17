@@ -17,8 +17,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 sealed class UserReportsUiState {
+    object Idle : UserReportsUiState()
     object Loading : UserReportsUiState()
-    object Created : UserReportsUiState()
+    data class Created(val report: ReportResponse) : UserReportsUiState()
     object Updated : UserReportsUiState()
     object Deleted : UserReportsUiState()
     data class Success(val reports: List<ReportResponse>) : UserReportsUiState()
@@ -30,7 +31,7 @@ class UserReportsViewModel(application: Application) : AndroidViewModel(applicat
     private val sessionStore = SessionStore(application.applicationContext)
     private val repository = UserReportsRepository()
 
-    private val _uiState = MutableStateFlow<UserReportsUiState>(UserReportsUiState.Loading)
+    private val _uiState = MutableStateFlow<UserReportsUiState>(UserReportsUiState.Idle)
     val uiState: StateFlow<UserReportsUiState> = _uiState.asStateFlow()
 
     private val _activeFilter = MutableStateFlow<String?>(null)
@@ -40,6 +41,10 @@ class UserReportsViewModel(application: Application) : AndroidViewModel(applicat
 
     private val _selectedReport = MutableStateFlow<ReportResponse?>(null)
     val selectedReport: StateFlow<ReportResponse?> = _selectedReport.asStateFlow()
+
+    init {
+        Log.d("DEBUG_VM", "ViewModel created. Initial state: ${_uiState.value}")
+    }
 
     fun setFilter(filter: String?) {
         val normalizedFilter = ReportTypeMapper.normalizeType(filter)
@@ -122,7 +127,7 @@ class UserReportsViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     fun resetState() {
-        _uiState.value = UserReportsUiState.Loading
+        _uiState.value = UserReportsUiState.Idle
     }
 
     fun deleteReport(reportId: String) {
@@ -142,17 +147,42 @@ class UserReportsViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     fun createReport(request: ReportRequest) {
+        if (_uiState.value is UserReportsUiState.Loading) return
+
         viewModelScope.launch {
+            Log.d(tag, "createReport called, type=${request.type}")
             _uiState.value = UserReportsUiState.Loading
-            val token = sessionStore.tokenFlow.first()
-            if (token.isNullOrBlank()) {
-                _uiState.value = UserReportsUiState.Error("Sesión inválida. Inicia sesión nuevamente.")
+
+            val token = try {
+                sessionStore.tokenFlow.first()
+            } catch (e: Exception) {
+                Log.e(tag, "Token retrieval failed", e)
+                _uiState.value = UserReportsUiState.Error("Error de sesión")
                 return@launch
             }
 
-            when (val result = repository.createReport(token, request)) {
-                is MapsResult.Success -> _uiState.value = UserReportsUiState.Created
-                is MapsResult.Error -> _uiState.value = UserReportsUiState.Error(result.message)
+            if (token.isNullOrBlank()) {
+                _uiState.value = UserReportsUiState.Error("Sesión no válida. Inicia sesión nuevamente.")
+                return@launch
+            }
+
+            val result = try {
+                repository.createReport(token, request)
+            } catch (e: Exception) {
+                Log.e(tag, "Exception creating report", e)
+                _uiState.value = UserReportsUiState.Error(e.message ?: "Error inesperado")
+                return@launch
+            }
+
+            when (result) {
+                is MapsResult.Success -> {
+                    Log.d(tag, "Report created: ${result.data.id}")
+                    _uiState.value = UserReportsUiState.Created(result.data)
+                }
+                is MapsResult.Error -> {
+                    Log.e(tag, "Error: ${result.message}")
+                    _uiState.value = UserReportsUiState.Error(result.message)
+                }
             }
         }
     }
@@ -222,7 +252,7 @@ class UserReportsViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-    fun updateReportFields(reportId: String, fields: Map<String, String>) {
+    fun updateReportFields(reportId: String, fields: Map<String, Any?>) {
         viewModelScope.launch {
             _uiState.value = UserReportsUiState.Loading
             val token = sessionStore.tokenFlow.first()

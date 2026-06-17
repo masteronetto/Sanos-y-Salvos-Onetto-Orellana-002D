@@ -7,11 +7,14 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.PATCH
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface AdminUsuariosApi {
     @GET("/api:sanos-y-salvos-users/list")
     suspend fun getUsers(
         @Header("Authorization") authHeader: String,
+        @Query("page") page: Int = 1,
+        @Query("per_page") perPage: Int = 1000,
     ): Response<Any>
 
     @DELETE("/api:sanos-y-salvos-users/{id}")

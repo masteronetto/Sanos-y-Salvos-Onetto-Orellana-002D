@@ -9,11 +9,14 @@ import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface AdminUsersApi {
     @GET("/api:sanos-y-salvos-users/list")
     suspend fun getUsers(
         @Header("Authorization") authHeader: String,
+        @Query("page") page: Int = 1,
+        @Query("per_page") perPage: Int = 1000,
     ): Response<Any>
 
     @GET("/api:sanos-y-salvos-users/get_by_id/{id}")

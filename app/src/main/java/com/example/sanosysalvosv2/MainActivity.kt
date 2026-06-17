@@ -1,10 +1,12 @@
 package com.example.sanosysalvosv2
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import timber.log.Timber
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,8 +36,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,6 +68,7 @@ import com.example.sanosysalvosv2.ui.screens.AdminReportesScreen
 import com.example.sanosysalvosv2.ui.screens.AdminUsuariosScreen
 import com.example.sanosysalvosv2.ui.screens.AddEditPetScreen
 import com.example.sanosysalvosv2.ui.screens.CoincidenciasScreen
+import com.example.sanosysalvosv2.ui.screens.MatchDetailScreen
 import com.example.sanosysalvosv2.ui.screens.EditProfileScreen
 import com.example.sanosysalvosv2.ui.screens.NotificacionesScreen
 import com.example.sanosysalvosv2.ui.screens.InicioScreen
@@ -76,7 +81,6 @@ import com.example.sanosysalvosv2.ui.screens.EditReportScreen
 import com.example.sanosysalvosv2.ui.screens.CreateReportScreen
 import com.example.sanosysalvosv2.ui.screens.ReporteDetailScreen
 import com.example.sanosysalvosv2.ui.screens.ReportesScreen
-import com.example.sanosysalvosv2.ui.screens.ReportPetScreen
 import com.example.sanosysalvosv2.ui.screens.RegisterScreen
 import com.example.sanosysalvosv2.ui.theme.SanosYSalvosV2Theme
 import com.example.sanosysalvosv2.viewmodel.AdminViewModel
@@ -97,10 +101,18 @@ class MainActivity : ComponentActivity() {
     private val userReportsViewModel: UserReportsViewModel by viewModels()
     private val profileViewModel: ProfileViewModel by viewModels()
 
+    private var notificationType: String? = null
+    private var notificationMatchId: String? = null
+    private var notificationReportId: String? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Configuration.getInstance().userAgentValue = packageName
         Configuration.getInstance().osmdroidTileCache = cacheDir
+
+        // Handle notification intent
+        handleNotificationIntent(intent)
+        // Listen for new intents (app already running)
         enableEdgeToEdge()
         setContent {
             SanosYSalvosV2Theme {
@@ -113,10 +125,42 @@ class MainActivity : ComponentActivity() {
                         petsViewModel = petsViewModel,
                         userReportsViewModel = userReportsViewModel,
                         profileViewModel = profileViewModel,
+                        notificationType = notificationType,
+                        notificationMatchId = notificationMatchId,
+                        notificationReportId = notificationReportId,
                     )
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        Timber.d("📬 New intent received")
+        setIntent(intent)
+        handleNotificationIntent(intent)
+    }
+
+    private fun handleNotificationIntent(intent: Intent?) {
+        val matchId = intent?.getStringExtra("match_id")
+            ?: intent?.getStringExtra("matchId")
+        val reportId = intent?.getStringExtra("report_id")
+            ?: intent?.getStringExtra("reportId")
+
+        if (!matchId.isNullOrEmpty()) {
+            Timber.d("Handling match notification: $matchId")
+            notificationMatchId = matchId
+            notificationReportId = null
+        } else if (!reportId.isNullOrEmpty()) {
+            Timber.d("Handling report notification: $reportId")
+            notificationReportId = reportId
+            notificationMatchId = null
+        } else {
+            notificationMatchId = intent?.getStringExtra("match_id")
+            notificationReportId = intent?.getStringExtra("report_id")
+        }
+
+        notificationType = intent?.getStringExtra("notification_type")
     }
 }
 
@@ -129,6 +173,9 @@ fun AppNav(
     petsViewModel: PetsViewModel,
     userReportsViewModel: UserReportsViewModel,
     profileViewModel: ProfileViewModel,
+    notificationType: String?,
+    notificationMatchId: String?,
+    notificationReportId: String?,
 ) {
     val navController = rememberNavController()
     val startDestination = if (authViewModel.isLoggedIn) {
@@ -178,6 +225,9 @@ fun AppNav(
                 petsViewModel = petsViewModel,
                 userReportsViewModel = userReportsViewModel,
                 profileViewModel = profileViewModel,
+                notificationType = notificationType,
+                notificationMatchId = notificationMatchId,
+                notificationReportId = notificationReportId,
                 onLogout = {
                     authViewModel.logout()
                     navController.navigate("login") {
@@ -239,6 +289,9 @@ private fun UserTabsScaffold(
     petsViewModel: PetsViewModel,
     userReportsViewModel: UserReportsViewModel,
     profileViewModel: ProfileViewModel,
+    notificationType: String?,
+    notificationMatchId: String?,
+    notificationReportId: String?,
     onLogout: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -246,6 +299,23 @@ private fun UserTabsScaffold(
     val tabNavController = rememberNavController()
     val navBackStackEntry by tabNavController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    LaunchedEffect(notificationMatchId, notificationReportId) {
+        when {
+            !notificationMatchId.isNullOrEmpty() -> {
+                Timber.d("Navigating to match: $notificationMatchId")
+                tabNavController.navigate("match_detail/$notificationMatchId") {
+                    launchSingleTop = true
+                }
+            }
+            !notificationReportId.isNullOrEmpty() -> {
+                Timber.d("Navigating to report: $notificationReportId")
+                tabNavController.navigate("reporte_detail/$notificationReportId") {
+                    launchSingleTop = true
+                }
+            }
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -349,16 +419,11 @@ private fun UserTabsScaffold(
             composable("pet_detail/{petId}") { backStackEntry ->
                 val petId = backStackEntry.arguments?.getString("petId").orEmpty()
                 PetDetailScreen(
-                    petViewModel = petsViewModel,
+                    petsViewModel = petsViewModel,
                     petId = petId,
                     onNavigateBack = { tabNavController.popBackStack() },
                     onNavigateToEditPet = { id -> tabNavController.navigate("edit_pet/$id") },
-                )
-            }
-            composable("report_pet") {
-                ReportPetScreen(
-                    petViewModel = petViewModel,
-                    onNavigateBack = { tabNavController.popBackStack() },
+                    onNavigateToReportPet = { id -> tabNavController.navigate("create_report") },
                 )
             }
             composable("create_report") {
@@ -385,6 +450,14 @@ private fun UserTabsScaffold(
             }
             composable("coincidencias") {
                 CoincidenciasScreen(
+                    onNavigateBack = { tabNavController.popBackStack() },
+                    onNavigateToMatchDetail = { matchId -> tabNavController.navigate("match_detail/$matchId") },
+                )
+            }
+            composable("match_detail/{matchId}") { backStackEntry ->
+                val matchId = backStackEntry.arguments?.getString("matchId").orEmpty()
+                MatchDetailScreen(
+                    matchId = matchId,
                     onNavigateBack = { tabNavController.popBackStack() },
                 )
             }
@@ -430,7 +503,6 @@ private fun AdminTabsScaffold(
         ) {
             composable("admin_dashboard") {
                 AdminDashboardScreen(
-                    adminViewModel = adminViewModel,
                     onLogout = onLogout,
                 )
             }

@@ -49,9 +49,38 @@ class UserReportsRepository {
     }
 
     suspend fun createReport(token: String, request: ReportRequest): MapsResult<ReportResponse> {
-        val url = "${BuildConfig.XANO_BASE_URL}api:sanos-y-salvos-reports/create"
-        Log.d(tag, "POST $url")
-        return safeCall { api().createReport(authHeader = "Bearer $token", request = request) }
+        val debugJson = Gson().toJson(request)
+        Log.d(tag, "DEBUG_JSON Exact JSON sent to API: $debugJson")
+
+        return try {
+            val response = api().createReport(authHeader = "Bearer $token", request = request)
+            val responseCode = response.code()
+            Log.d(tag, "DEBUG_JSON Response code: $responseCode")
+            val errorBody = if (!response.isSuccessful) response.errorBody()?.string() else null
+
+            if (response.isSuccessful) {
+                val responseBody = response.body()
+                Log.d(tag, "Create Report Success: code=$responseCode body=${Gson().toJson(responseBody)}")
+                if (responseBody == null) {
+                    MapsResult.Error("Respuesta de reporte vacía")
+                } else {
+                    MapsResult.Success(responseBody)
+                }
+            } else {
+                Log.e(tag, "DEBUG_JSON Error body: ${errorBody ?: "<empty>"}")
+                Log.d(tag, "Create Report Error: code=$responseCode error=${errorBody ?: "<empty>"}")
+                MapsResult.Error("Reports API fallido: $responseCode - ${errorBody ?: "sin detalle"}")
+            }
+        } catch (e: IOException) {
+            Log.e(tag, "Network error creating report", e)
+            MapsResult.Error("Error de red en reportes: ${e.message ?: "sin detalle"}")
+        } catch (e: HttpException) {
+            Log.e(tag, "HTTP exception creating report", e)
+            MapsResult.Error("Error HTTP en reportes: ${e.code()} - ${e.message()}")
+        } catch (e: Exception) {
+            Log.e(tag, "Error creating report", e)
+            MapsResult.Error(e.message ?: "Error inesperado en reportes")
+        }
     }
 
     suspend fun updateReport(token: String, id: String, request: ReportRequest): MapsResult<ReportResponse> {
@@ -60,9 +89,9 @@ class UserReportsRepository {
         return safeCall { api().updateReport(authHeader = "Bearer $token", id = id, request = request.toMap()) }
     }
 
-    suspend fun updateReportFields(token: String, id: String, fields: Map<String, String>): MapsResult<ReportResponse> {
+    suspend fun updateReportFields(token: String, id: String, fields: Map<String, Any?>): MapsResult<ReportResponse> {
         val url = "${BuildConfig.XANO_BASE_URL}api:sanos-y-salvos-reports/update/$id"
-        Log.d(tag, "PUT $url")
+        Log.d(tag, "PUT $url with fields: ${fields.keys}")
         return safeCall { api().updateReport(authHeader = "Bearer $token", id = id, request = fields) }
     }
 
@@ -186,20 +215,30 @@ class UserReportsRepository {
         }
     }
 
-    private fun ReportRequest.toMap(): Map<String, Any?> = mapOf(
-        "type" to type,
-        "description" to description,
-        "latitude" to latitude,
-        "longitude" to longitude,
-        "locationName" to locationName,
-        "eventDate" to eventDate,
-        "photoUrl" to photoUrl,
-        "photoBase64" to photoBase64,
-        "species" to species,
-        "breed" to breed,
-        "color" to color,
-        "petId" to petId,
-        "petName" to petName,
-        "size" to size,
-    )
+    private fun ReportRequest.toMap(): Map<String, Any?> {
+        val base = mutableMapOf<String, Any?>(
+            "type" to type,
+            "description" to description,
+            "latitude" to latitude,
+            "longitude" to longitude,
+            "eventDate" to eventDate,
+        )
+
+        locationName?.takeIf { it.isNotBlank() }?.let { base["locationName"] = it }
+        species?.takeIf { it.isNotBlank() }?.let { base["species"] = it }
+        breed?.takeIf { it.isNotBlank() }?.let { base["breed"] = it }
+        color?.takeIf { it.isNotBlank() }?.let { base["color"] = it }
+
+        // photoBase64: strip data URI prefix if present, include only when non-blank
+        photoBase64?.replaceFirst(Regex("^data:image/[^;]+;base64,"), "")
+            ?.takeIf { it.isNotBlank() }
+            ?.let { base["photoBase64"] = it }
+
+        // petId, petName and size: include only when non-null and non-blank
+        petId?.takeIf { it.isNotBlank() }?.let { base["petId"] = it }
+        petName?.takeIf { it.isNotBlank() }?.let { base["petName"] = it }
+        size?.takeIf { it.isNotBlank() }?.let { base["size"] = it }
+
+        return base
+    }
 }

@@ -32,14 +32,14 @@ class AdminMascotasViewModel(application: Application) : AndroidViewModel(applic
     private val _selectedPet = MutableStateFlow<PetResponse?>(null)
     val selectedPet: StateFlow<PetResponse?> = _selectedPet.asStateFlow()
 
-    fun loadAllPets() {
+    fun loadAllPets(page: Int = 1, perPage: Int = 20, species: String = "", breed: String = "") {
         _uiState.value = AdminMascotasUiState.Loading
         viewModelScope.launch {
             try {
                 val token = sessionStore.tokenFlow.first()
                 if (token.isNullOrBlank()) throw IllegalStateException("Token de sesión inválido")
 
-                when (val result = repository.listPets(token)) {
+                when (val result = repository.listPets(token, page = page, perPage = perPage, species = species, breed = breed)) {
                     is MapsResult.Success -> _uiState.value = AdminMascotasUiState.Success(result.data)
                     is MapsResult.Error -> _uiState.value = AdminMascotasUiState.Error(result.message)
                 }

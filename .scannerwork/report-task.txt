@@ -2,5 +2,5 @@ projectKey=pet-find
 serverUrl=http://sonarqube:9000
 serverVersion=10.4.1.88267
 dashboardUrl=http://sonarqube:9000/dashboard?id=pet-find
-ceTaskId=c7eb14d2-c30a-4b32-afc3-97b97b17f326
-ceTaskUrl=http://sonarqube:9000/api/ce/task?id=c7eb14d2-c30a-4b32-afc3-97b97b17f326
+ceTaskId=6eb1b9b5-896c-412d-a6d7-1eb50d158955
+ceTaskUrl=http://sonarqube:9000/api/ce/task?id=6eb1b9b5-896c-412d-a6d7-1eb50d158955

@@ -43,6 +43,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.sanosysalvosv2.viewmodel.AdminMascotasViewModel
 import com.example.sanosysalvosv2.viewmodel.AdminMascotasUiState
+import com.example.sanosysalvosv2.util.TranslationUtils
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -101,6 +102,8 @@ fun AdminMascotasScreen(
     var statusExpanded by remember { mutableStateOf(false) }
     var selectedSpecies by remember { mutableStateOf(PetType.TODOS) }
     var selectedStatus by remember { mutableStateOf(PetStatus.TODOS) }
+    var breed by remember { mutableStateOf("") }
+    var page by remember { mutableIntStateOf(1) }
     var selectedRowIndex by remember { mutableIntStateOf(-1) }
     var selectedPetId by remember { mutableStateOf<String?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -186,8 +189,34 @@ fun AdminMascotasScreen(
                     onDismiss = { statusExpanded = false },
                     options = PetStatus.values().toList(),
                     optionLabel = { it.label },
-                    onOptionSelected = { selectedStatus = it },
+                    onOptionSelected = {
+                        selectedStatus = it
+                        page = 1
+                    },
                 )
+
+                OutlinedTextField(
+                    value = breed,
+                    onValueChange = { breed = it },
+                    modifier = Modifier.width(160.dp),
+                    placeholder = { Text("Raza") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
+                )
+
+                Button(
+                    onClick = {
+                        page = 1
+                        val speciesParam = if (selectedSpecies == PetType.TODOS) "" else selectedSpecies.label
+                        viewModel.loadAllPets(page = page, perPage = 20, species = speciesParam, breed = breed)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = TealDark),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Icon(imageVector = Icons.Filled.Search, contentDescription = null, tint = Color.White)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Buscar", color = Color.White)
+                }
 
                 Spacer(modifier = Modifier.weight(1f))
 
@@ -242,6 +271,31 @@ fun AdminMascotasScreen(
                     },
                 )
             }
+
+            // Pagination controls
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Button(onClick = {
+                    if (page > 1) {
+                        page -= 1
+                        val speciesParam = if (selectedSpecies == PetType.TODOS) "" else selectedSpecies.label
+                        viewModel.loadAllPets(page = page, perPage = 20, species = speciesParam, breed = breed)
+                    }
+                }) { Text(text = "Anterior") }
+
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(text = "Página $page")
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Button(onClick = {
+                    page += 1
+                    val speciesParam = if (selectedSpecies == PetType.TODOS) "" else selectedSpecies.label
+                    viewModel.loadAllPets(page = page, perPage = 20, species = speciesParam, breed = breed)
+                }) { Text(text = "Siguiente") }
+            }
         }
     }
 }
@@ -294,7 +348,7 @@ private fun PetTableRow(
             TableCell(
                 text = pet.status.label,
                 width = 80.dp,
-                color = petStatusColor(pet.status),
+                color = if (pet.status == PetStatus.ACTIVO) ActiveColor else InactiveColor,
                 bold = true,
                 overflow = TextOverflow.Clip,
             )
@@ -400,11 +454,6 @@ private fun CircleActionButton(
     }
 }
 
-private fun petStatusColor(status: PetStatus): Color = when (status) {
-    PetStatus.ACTIVO -> ActiveColor
-    PetStatus.INACTIVO -> InactiveColor
-    PetStatus.TODOS -> Color.Black
-}
 
 @Composable
 private fun AdminTopBar(onLogout: () -> Unit) {

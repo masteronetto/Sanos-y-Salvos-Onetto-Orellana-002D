@@ -43,7 +43,7 @@ class AdminEntidadesViewModel(application: Application) : AndroidViewModel(appli
                 currentCollaborators = repository.listCollaborators(token)
                 _uiState.value = AdminEntidadesUiState.Success(currentCollaborators)
             } catch (e: Exception) {
-                Log.e("AdminEntidadesVM", "loadEntidades failed", e)
+                Log.e("AdminEntidadesVM", "loadEntidades failed: ${e.message} url=https://x8ki-letl-twmt.n7.xano.io/api:collaborators/list", e)
                 _uiState.value = AdminEntidadesUiState.Error(ErrorHandler.getErrorMessage(e))
             }
         }

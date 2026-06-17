@@ -13,7 +13,7 @@ object CollaboratorsRetrofitClient {
     .readTimeout(30, TimeUnit.SECONDS)
     .build()
   val retrofit: Retrofit = Retrofit.Builder()
-    .baseUrl("https://x8ki-letl-twmt.n7.xano.io/api:sanos-y-salvos-collaborators/")
+    .baseUrl("https://x8ki-letl-twmt.n7.xano.io/api:collaborators/")
     .client(okHttp)
     .addConverterFactory(GsonConverterFactory.create(gson))
     .build()

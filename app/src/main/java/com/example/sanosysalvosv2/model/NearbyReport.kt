@@ -9,6 +9,7 @@ data class NearbyReport(
     // Populated explicitly once MapsRepository is updated to map reportType directly.
     val status: String = "",
     val photoUrl: String? = null,
+    val photoBase64: String? = null,
     val reporterName: String? = null,
     val reportId: String? = null,
 )

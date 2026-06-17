@@ -1,14 +1,20 @@
 ﻿package com.example.sanosysalvosv2.ui.screens
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.location.Location
 import android.location.LocationManager
 import android.net.Uri
+import android.util.Log
+import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -19,13 +25,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.sanosysalvosv2.model.ReportFormState
 import com.example.sanosysalvosv2.model.ReportRequest
-import com.example.sanosysalvosv2.ui.screens.ReportFormContent
+import com.example.sanosysalvosv2.model.ReportTypeMapper
 import com.example.sanosysalvosv2.viewmodel.ProfileUiState
 import com.example.sanosysalvosv2.viewmodel.ProfileViewModel
 import com.example.sanosysalvosv2.viewmodel.UserReportsUiState
@@ -33,42 +40,7 @@ import com.example.sanosysalvosv2.viewmodel.UserReportsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Pets
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import java.io.ByteArrayOutputStream
 
 @Composable
 fun CreateReportScreen(
@@ -83,9 +55,8 @@ fun CreateReportScreen(
     val coroutineScope = rememberCoroutineScope()
 
     var formState by remember { mutableStateOf(ReportFormState()) }
-    var photoUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    var photoUri by remember { mutableStateOf<Uri?>(null) }
     var permissionRequested by remember { mutableStateOf(false) }
-    var validationError by remember { mutableStateOf<String?>(null) }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -102,16 +73,45 @@ fun CreateReportScreen(
     val photoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
     ) { uri ->
-        uri?.let {
-            photoUri = it
-            coroutineScope.launch {
-                val base64 = withContext(Dispatchers.IO) { uriToBase64(context, it) }
-                formState = formState.copy(photoBase64 = base64)
+        uri?.let { selectedUri ->
+            photoUri = selectedUri
+            coroutineScope.launch(Dispatchers.IO) {
+                try {
+                    val inputStream = context.contentResolver.openInputStream(selectedUri)
+                    val bytes = inputStream?.readBytes()
+                    inputStream?.close()
+
+                    if (bytes != null) {
+                        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                        if (bitmap != null) {
+                            val maxDim = 600
+                            val scale = minOf(maxDim.toFloat() / bitmap.width, maxDim.toFloat() / bitmap.height, 1.0f)
+                            val resized = if (scale < 1f) {
+                                Bitmap.createScaledBitmap(bitmap, (bitmap.width * scale).toInt(), (bitmap.height * scale).toInt(), true)
+                            } else bitmap
+
+                            val out = ByteArrayOutputStream()
+                            resized.compress(Bitmap.CompressFormat.JPEG, 70, out)
+                            val base64 = Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
+                            
+                            withContext(Dispatchers.Main) {
+                                formState = formState.copy(photoBase64 = base64)
+                            }
+
+                            if (resized != bitmap) resized.recycle()
+                            bitmap.recycle()
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("CreateReport", "Error processing photo: ${e.message}")
+                }
             }
         }
     }
 
     LaunchedEffect(Unit) {
+        Log.d("DEBUG_CREATE", "Screen opened. Initial uiState: ${viewModel.uiState.value}")
+        viewModel.resetState()
         profileViewModel.loadProfile()
 
         val granted = ContextCompat.checkSelfPermission(
@@ -155,62 +155,109 @@ fun CreateReportScreen(
 
     val isSubmitting = uiState is UserReportsUiState.Loading
 
-    ReportFormContent(
-        title = "Crear reporte",
-        buttonText = "Enviar reporte",
-        state = formState,
-        onStateChange = { formState = it },
-        contactName = contactName,
-        contactPhone = contactPhone,
-        photoUri = photoUri,
-        onPickPhoto = { photoPicker.launch("image/*") },
-        onUpdateLocation = {
-            val granted = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION,
-            ) == PackageManager.PERMISSION_GRANTED
-            if (granted) {
-                coroutineScope.launch {
-                    getLastKnownLocation(context)?.let { location ->
-                        formState = formState.copy(latitude = location.latitude, longitude = location.longitude)
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        containerColor = Color.White
+    ) { padding ->
+        Box(modifier = Modifier.padding(padding)) {
+            ReportFormContent(
+                title = "Crear reporte",
+                buttonText = "Enviar reporte",
+                state = formState,
+                onStateChange = { formState = it },
+                contactName = contactName,
+                contactPhone = contactPhone,
+                photoUri = photoUri,
+                onPickPhoto = { photoPicker.launch("image/*") },
+                onUpdateLocation = {
+                    val granted = ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                    ) == PackageManager.PERMISSION_GRANTED
+                    if (granted) {
+                        coroutineScope.launch {
+                            getLastKnownLocation(context)?.let { location ->
+                                formState = formState.copy(latitude = location.latitude, longitude = location.longitude)
+                            }
+                        }
+                    } else {
+                        locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                     }
-                }
-            } else {
-                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-            }
-        },
-        onSubmit = {
-            validationError = when {
-                formState.description.isBlank() -> "Por favor ingresa una descripción del reporte."
-                formState.eventDate.isBlank() -> "Por favor ingresa la fecha del evento."
-                formState.latitude == 0.0 && formState.longitude == 0.0 -> "No se pudo obtener la ubicación. Actualiza la ubicación antes de enviar."
-                else -> null
-            }
-            if (validationError == null) {
-                viewModel.createReport(
-                    ReportRequest(
-                        type = formState.type,
-                        description = formState.description.trim(),
-                        latitude = formState.latitude,
-                        longitude = formState.longitude,
-                        locationName = formState.locationName.takeIf { it.isNotBlank() },
-                        eventDate = formState.eventDate.trim(),
-                        photoUrl = null,
-                        photoBase64 = formState.photoBase64.takeIf { it.isNotBlank() },
-                        species = formState.selectedSpeciesValue.takeIf { it.isNotBlank() },
-                        breed = formState.breed.takeIf { it.isNotBlank() },
-                        color = formState.color.takeIf { it.isNotBlank() },
-                        petName = formState.petName.takeIf { it.isNotBlank() },
-                        size = formState.selectedSizeValue.takeIf { it.isNotBlank() },
-                    ),
-                )
-            }
-        },
-        isSubmitting = isSubmitting,
-        validationError = validationError,
-        errorMessage = (uiState as? UserReportsUiState.Error)?.message,
-        onBack = { navController.popBackStack() },
-    )
+                },
+                onSubmit = {
+                    when {
+                        formState.description.isBlank() -> {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Por favor ingresa una descripción del reporte.")
+                            }
+                        }
+                        formState.eventDate.isBlank() -> {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Por favor ingresa la fecha del evento.")
+                            }
+                        }
+                        formState.locationName.isBlank() -> {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Por favor ingresa el nombre del lugar.")
+                            }
+                        }
+                        formState.selectedSpeciesValue.isBlank() -> {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Por favor selecciona la especie.")
+                            }
+                        }
+                        (formState.latitude == 0.0 && formState.longitude == 0.0) -> {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("No se pudo obtener la ubicación. Actualiza la ubicación antes de enviar.")
+                            }
+                        }
+                        else -> {
+                            coroutineScope.launch {
+                                val mappedType = ReportTypeMapper.displayToDb(formState.type) ?: "LOST"
+                                
+                                // Round to 4 decimals to match backend trace exactly
+                                val lat = "%.4f".format(java.util.Locale.US, formState.latitude).toDouble()
+                                val lng = "%.4f".format(java.util.Locale.US, formState.longitude).toDouble()
+
+                                var photoBase64 = formState.photoBase64.takeIf { it.isNotBlank() }
+                                    ?.replaceFirst(Regex("^data:image/[^;]+;base64,"), "")
+
+                                if (photoBase64 != null && photoBase64.length > 400_000) {
+                                    Log.w("DEBUG_PHOTO", "Photo too large: ${photoBase64.length} chars, recompressing")
+                                    photoBase64 = compressBase64Photo(photoBase64)
+                                    if (photoBase64 == null || photoBase64.length > 400_000) {
+                                        snackbarHostState.showSnackbar("La foto es demasiado grande para enviar. Selecciona otra foto.")
+                                        return@launch
+                                    }
+                                }
+
+                                val request = ReportRequest(
+                                    type = mappedType,
+                                    description = formState.description.trim(),
+                                    latitude = lat,
+                                    longitude = lng,
+                                    locationName = formState.locationName.trim().takeIf { it.isNotBlank() },
+                                    eventDate = formState.eventDate.trim(),
+                                    photoBase64 = photoBase64,
+                                    species = formState.selectedSpeciesValue.takeIf { it.isNotBlank() },
+                                    breed = formState.breed.trim().takeIf { it.isNotBlank() },
+                                    color = formState.color.trim().takeIf { it.isNotBlank() },
+                                    petId = formState.petId?.takeIf { it.isNotBlank() },
+                                    petName = formState.petName.takeIf { it.isNotBlank() },
+                                    size = formState.selectedSizeValue.takeIf { it.isNotBlank() }
+                                )
+                                viewModel.createReport(request)
+                            }
+                        }
+                    }
+                },
+                isSubmitting = isSubmitting,
+                validationError = null,
+                errorMessage = (uiState as? UserReportsUiState.Error)?.message,
+                onBack = { navController.popBackStack() },
+            )
+        }
+    }
 }
 
 private suspend fun getLastKnownLocation(context: Context): Location? = withContext(Dispatchers.IO) {
@@ -229,10 +276,27 @@ private suspend fun getLastKnownLocation(context: Context): Location? = withCont
     }.firstOrNull()
 }
 
-private fun uriToBase64(context: Context, uri: Uri): String = try {
-    context.contentResolver.openInputStream(uri)?.use { stream ->
-        android.util.Base64.encodeToString(stream.readBytes(), android.util.Base64.NO_WRAP)
-    } ?: ""
-} catch (_: Exception) {
-    ""
+private suspend fun compressBase64Photo(base64: String, maxSize: Int = 400_000): String? = withContext(Dispatchers.IO) {
+    try {
+        val bytes = Base64.decode(base64, Base64.NO_WRAP)
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return@withContext null
+        val outputStream = ByteArrayOutputStream()
+
+        var quality = 50
+        bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
+        var compressed = Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
+
+        while (compressed.length > maxSize && quality > 10) {
+            quality -= 10
+            outputStream.reset()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
+            compressed = Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
+        }
+
+        bitmap.recycle()
+        if (compressed.length > maxSize) null else compressed
+    } catch (e: Exception) {
+        Log.e("CreateReport", "Photo recompression failed: ${e.message}")
+        null
+    }
 }

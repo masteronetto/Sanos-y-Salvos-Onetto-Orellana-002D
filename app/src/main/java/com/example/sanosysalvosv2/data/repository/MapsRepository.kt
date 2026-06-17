@@ -48,6 +48,7 @@ class MapsRepository {
                             description = "${marker.reportType.name.lowercase()} · ${marker.distanceMeters.toInt()} m",
                             status = marker.reportType.name,
                             photoUrl = marker.photoUrl,
+                            photoBase64 = marker.photoBase64,
                             reporterName = marker.reporterName,
                             reportId = marker.reportId,
                         )

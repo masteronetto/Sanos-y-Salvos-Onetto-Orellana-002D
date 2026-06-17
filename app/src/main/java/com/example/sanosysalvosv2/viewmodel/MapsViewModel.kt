@@ -4,13 +4,14 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.sanosysalvosv2.data.api.CollaboratorsApi
+import com.example.sanosysalvosv2.data.api.CollaboratorsRetrofitClient
 import com.example.sanosysalvosv2.data.repository.MapsResult
 import com.example.sanosysalvosv2.data.repository.UserReportsRepository
-import com.example.sanosysalvosv2.data.session.SessionStore
-import com.example.sanosysalvosv2.model.NearbyReport
 import com.example.sanosysalvosv2.data.repository.CollaboratorsRepository
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.example.sanosysalvosv2.data.session.SessionStore
+import com.example.sanosysalvosv2.model.CollaboratorResponse
+import com.example.sanosysalvosv2.model.NearbyReport
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +21,11 @@ import kotlinx.coroutines.launch
 sealed class MapsUiState {
     data object Loading : MapsUiState()
     data object AwaitingLocation : MapsUiState()
-    data class Success(val reports: List<NearbyReport>) : MapsUiState()
+    data class Success(
+        val reports: List<NearbyReport>,
+        val lostCount: Int = 0,
+        val foundCount: Int = 0
+    ) : MapsUiState()
     data class Error(val message: String) : MapsUiState()
 }
 
@@ -41,55 +46,36 @@ class MapsViewModel(
     private var lastType: String? = null
     private var pendingRetryWhenLocationAvailable: Boolean = true
 
-    // Collaborator markers exposed to UI
-    data class CollaboratorMarker(
-        val id: String,
-        val name: String,
-        val type: String,
-        val comuna: String,
-        val lat: Double,
-        val lng: Double,
-    )
+    private val _collaborators = MutableStateFlow<List<CollaboratorResponse>>(emptyList())
+    val collaborators: StateFlow<List<CollaboratorResponse>> = _collaborators.asStateFlow()
 
-    private val _collaborators = MutableStateFlow<List<CollaboratorMarker>>(emptyList())
-    val collaborators: StateFlow<List<CollaboratorMarker>> = _collaborators.asStateFlow()
-
-    private val comunaCoordinates = mapOf(
+    val comunaCoordinates = mapOf(
         "Maipú" to Pair(-33.5132, -70.7653),
-        "Providencia" to Pair(-33.4372, -70.6108),
+        "Maipu" to Pair(-33.5132, -70.7653),
+        "Providencia" to Pair(-33.4322, -70.6108),
         "Ñuñoa" to Pair(-33.4569, -70.5983),
+        "Nunoa" to Pair(-33.4569, -70.5983),
         "Las Condes" to Pair(-33.4163, -70.5956),
         "La Florida" to Pair(-33.5235, -70.5912),
         "Santiago" to Pair(-33.4489, -70.6693),
         "Cerrillos" to Pair(-33.4951, -70.7234),
-        "Puente Alto" to Pair(-33.6105, -70.5688),
-        "La Reina" to Pair(-33.4208, -70.5283),
-        "Macul" to Pair(-33.5009, -70.5583),
-        "Vitacura" to Pair(-33.3968, -70.5708),
-        "Lo Barnechea" to Pair(-33.3663, -70.5358),
-        "Peñalolén" to Pair(-33.4947, -70.5458),
-        "La Granja" to Pair(-33.5805, -70.6383),
-        "Coyoacán" to Pair(-33.5595, -70.6695),
-        "Quilicura" to Pair(-33.3905, -70.7508),
-        "Quinta Normal" to Pair(-33.4538, -70.7088),
-        "Estación Central" to Pair(-33.4663, -70.6958),
-        "Recoleta" to Pair(-33.4107, -70.6358),
-        "Renca" to Pair(-33.3855, -70.7283),
-        "Huechuraba" to Pair(-33.3505, -70.6908),
-        "Conchalí" to Pair(-33.3805, -70.6558),
-        "San Joaquín" to Pair(-33.5473, -70.6295),
-        "San Miguel" to Pair(-33.4751, -70.6483),
-        "La Cisterna" to Pair(-33.5280, -70.6783),
-        "San Ramón" to Pair(-33.5632, -70.6695),
-        "La Pintana" to Pair(-33.6190, -70.6995),
         "Pucón" to Pair(-39.2722, -71.9797),
+        "Pucon" to Pair(-39.2722, -71.9797),
+        "Vitacura" to Pair(-33.3833, -70.5833),
+        "Peñalolén" to Pair(-33.4833, -70.5333),
+        "San Miguel" to Pair(-33.4971, -70.6531),
+        "Macul" to Pair(-33.4833, -70.5833),
+        "Independencia" to Pair(-33.4167, -70.6667)
     )
+
+    init {
+        loadCollaborators()
+    }
 
     fun fetchNearbyReports(lat: Double, lon: Double, radiusMeters: Int = 3000, type: String? = null) {
         if (!isValidLocation(lat, lon)) {
             pendingRetryWhenLocationAvailable = true
             _uiState.value = MapsUiState.AwaitingLocation
-            Log.d("MapsViewModel", "Skip nearby reports call: invalid location lat=$lat lon=$lon")
             return
         }
 
@@ -119,13 +105,17 @@ class MapsViewModel(
                             description = report.description ?: "",
                             status = report.type ?: "",
                             photoUrl = report.photoUrl,
+                            photoBase64 = report.photoBase64 ?: "",
                             reporterName = report.reporterId,
                             reportId = report.id,
                         )
                     }
-                    _uiState.value = MapsUiState.Success(nearby)
+                    _uiState.value = MapsUiState.Success(
+                        reports = nearby,
+                        lostCount = nearby.count { it.status.uppercase() == "LOST" },
+                        foundCount = nearby.count { it.status.uppercase() == "FOUND" }
+                    )
                 }
-
                 is MapsResult.Error -> {
                     Log.e("MapsViewModel", "Failed to load nearby reports: ${result.message}")
                     _uiState.value = MapsUiState.Error(result.message)
@@ -185,26 +175,16 @@ class MapsViewModel(
 
     fun loadCollaborators() {
         viewModelScope.launch {
-            val token = sessionStore.tokenFlow.first()
-            if (token.isNullOrBlank()) return@launch
             try {
-                val list = withContext(Dispatchers.IO) {
-                    collaboratorsRepository.listCollaborators(token)
-                }
-                val markers = list.map { collab ->
-                    val coords = comunaCoordinates[collab.comuna] ?: Pair(-33.4489, -70.6693)
-                    CollaboratorMarker(
-                        id = collab.id,
-                        name = collab.name,
-                        type = collab.type,
-                        comuna = collab.comuna,
-                        lat = coords.first,
-                        lng = coords.second,
-                    )
-                }
-                _collaborators.value = markers
+                val token = sessionStore.tokenFlow.first()
+                if (token.isNullOrBlank()) return@launch
+
+                val collaborators = collaboratorsRepository.listCollaborators(token)
+                val activeCollabs = collaborators.filter { it.status.equals("ACTIVE", ignoreCase = true) }
+                _collaborators.value = activeCollabs
+                Log.d("MapsVM", "Loaded ${activeCollabs.size} collaborators")
             } catch (e: Exception) {
-                Log.e("MapsViewModel", "Error loading collaborators: ${e.message}")
+                Log.e("MapsVM", "Error loading collaborators: ${e.message}")
             }
         }
     }

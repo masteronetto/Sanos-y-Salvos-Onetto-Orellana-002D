@@ -15,6 +15,10 @@ interface PetsApi {
     @GET("/api:sanos-y-salvos-pets/list")
     suspend fun listPets(
         @Header("Authorization") authHeader: String,
+        @retrofit2.http.Query("page") page: Int = 1,
+        @retrofit2.http.Query("per_page") perPage: Int = 20,
+        @retrofit2.http.Query("species") species: String = "",
+        @retrofit2.http.Query("breed") breed: String = "",
     ): Response<Any>
 
     @GET("/api:sanos-y-salvos-pets/my")

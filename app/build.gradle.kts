@@ -1,4 +1,4 @@
-plugins {
+plugins{
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
     id("jacoco")
@@ -41,6 +41,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
     buildFeatures {
         compose = true
@@ -59,6 +60,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation("com.jakewharton.timber:timber:5.0.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.6")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
     implementation("androidx.navigation:navigation-compose:2.8.2")
@@ -71,6 +73,8 @@ dependencies {
     implementation("org.osmdroid:osmdroid-android:6.1.18")
     implementation(platform("com.google.firebase:firebase-bom:34.14.1"))
     implementation("com.google.firebase:firebase-messaging-ktx:23.3.0")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
     // Unit Testing
     testImplementation(libs.junit)
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")

@@ -38,6 +38,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import android.util.Log
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,6 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.sanosysalvosv2.model.CollaboratorRequest
 import com.example.sanosysalvosv2.model.CollaboratorResponse
@@ -96,11 +98,51 @@ fun AdminEntidadesScreen(
     onNavigateToEditEntidad: (String?) -> Unit,
 ) {
     val viewModel: AdminEntidadesViewModel = viewModel()
-    LaunchedEffect(Unit) {
-        viewModel.loadEntidades()
+    val uiState by viewModel.uiState.collectAsState()
+
+    when (uiState) {
+        is AdminEntidadesUiState.Loading -> {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                androidx.compose.material3.CircularProgressIndicator()
+            }
+        }
+
+        is AdminEntidadesUiState.Error -> {
+            val message = (uiState as AdminEntidadesUiState.Error).message
+            Log.e("AdminEntidadesScreen", "loadEntidades error=$message url=https://x8ki-letl-twmt.n7.xano.io/api:collaborators/list")
+            com.example.sanosysalvosv2.ui.components.AdminErrorState(message = message, onRetry = { viewModel.loadEntidades() })
+        }
+
+        is AdminEntidadesUiState.Success -> {
+            val collaborators = (uiState as AdminEntidadesUiState.Success).collaborators
+            if (collaborators.isEmpty()) {
+                com.example.sanosysalvosv2.ui.components.EmptyAdminState("No hay entidades")
+            } else {
+                Column(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                    // Header
+                    Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text("ID", style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(120.dp))
+                        Text("Nombre", style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(220.dp))
+                        Text("Email", style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(220.dp))
+                        Text("Tipo", style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(100.dp))
+                        Text("Estado", style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(100.dp))
+                    }
+                    androidx.compose.material3.HorizontalDivider()
+                    collaborators.forEach { collaborator ->
+                        Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Text(collaborator.id.take(8) + "...", modifier = Modifier.width(120.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(collaborator.name, modifier = Modifier.width(220.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(collaborator.email, modifier = Modifier.width(220.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(collaborator.type, modifier = Modifier.width(100.dp))
+                            androidx.compose.material3.Badge(containerColor = if (collaborator.status == "ACTIVE") Color(0xFF4CAF50) else Color.Gray, modifier = Modifier.width(100.dp)) { Text(collaborator.status, fontSize = 10.sp) }
+                        }
+                        androidx.compose.material3.HorizontalDivider()
+                    }
+                }
+            }
+        }
     }
 
-    val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     var typeExpanded by remember { mutableStateOf(false) }
     var statusExpanded by remember { mutableStateOf(false) }

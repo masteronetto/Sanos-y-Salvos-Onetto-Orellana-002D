@@ -49,10 +49,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.sanosysalvosv2.model.ReportResponse
-import com.example.sanosysalvosv2.model.ReportTypeMapper
 import com.example.sanosysalvosv2.ui.theme.Borders
 import com.example.sanosysalvosv2.ui.theme.TextAccent
 import com.example.sanosysalvosv2.ui.theme.TextSecondary
+import com.example.sanosysalvosv2.util.TranslationUtils
 import com.example.sanosysalvosv2.viewmodel.UserReportsUiState
 import com.example.sanosysalvosv2.viewmodel.UserReportsViewModel
 
@@ -121,12 +121,12 @@ fun ReportesScreen(
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
-                        label = ReportTypeMapper.dbToDisplay("LOST"),
+                        label = "Perdidos",
                         selected = activeFilter == "LOST",
                         onClick = { reportViewModel.setFilter("LOST") },
                     )
                     FilterChip(
-                        label = ReportTypeMapper.dbToDisplay("FOUND"),
+                        label = "Encontrados",
                         selected = activeFilter == "FOUND",
                         onClick = { reportViewModel.setFilter("FOUND") },
                     )
@@ -332,13 +332,9 @@ private fun ReportCard(
 
 @Composable
 private fun ReportTypeBadge(type: String) {
-    val displayType = ReportTypeMapper.dbToDisplay(type)
-    val badgeColors = when (ReportTypeMapper.normalizeType(type)) {
-        "FOUND" -> Pair(TextAccent.copy(alpha = 0.18f), TextAccent)
-        else -> Pair(Color(0xFFFFE5E5), Color(0xFFC62828))
-    }
-    val bgColor = badgeColors.first
-    val fgColor = badgeColors.second
+    val displayType = TranslationUtils.reportType(type)
+    val bgColor = if (type.uppercase() == "FOUND") TextAccent.copy(alpha = 0.18f) else Color(0xFFFFE5E5)
+    val fgColor = if (type.uppercase() == "FOUND") TextAccent else Color(0xFFC62828)
 
     Box(
         modifier = Modifier
@@ -356,13 +352,9 @@ private fun ReportTypeBadge(type: String) {
 
 @Composable
 private fun ReportStatusChip(status: String?) {
-    val normalized = status ?: "PENDING"
-    val (text, bgColor, fgColor) = when (normalized.uppercase()) {
-        "APPROVED" -> Triple("Aprobado", TextAccent.copy(alpha = 0.18f), TextAccent)
-        "RESOLVED" -> Triple("Resuelto", Color(0xFFE8F5E9), Color(0xFF2E7D32))
-        "REJECTED" -> Triple("Rechazado", Color(0xFFFFE5E5), Color(0xFFC62828))
-        else -> Triple("Pendiente", Color(0xFFFFE9CC), Color(0xFFB26A00))
-    }
+    val text = TranslationUtils.reportStatus(status)
+    val fgColor = TranslationUtils.statusColor(status)
+    val bgColor = fgColor.copy(alpha = 0.12f)
 
     Box(
         modifier = Modifier

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,19 +37,27 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.graphics.BitmapFactory
+import coil.compose.AsyncImage
+import android.app.DatePickerDialog
+import java.util.Calendar
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
+import com.example.sanosysalvosv2.model.ReportTypes
 
 private val speciesOptions = listOf(
     "Perro" to "DOG",
@@ -70,6 +79,7 @@ private val reportTypeOptions = listOf(
 data class ReportFormState(
     val type: String = ReportTypes.LOST,
     val petName: String = "",
+    val petId: String? = null,
     val description: String = "",
     val locationName: String = "",
     val eventDate: String = "",
@@ -77,8 +87,8 @@ data class ReportFormState(
     val selectedSpeciesValue: String = "",
     val breed: String = "",
     val color: String = "",
-    val selectedSizeLabel: String = "Mediano",
-    val selectedSizeValue: String = "MEDIUM",
+    val selectedSizeLabel: String = "Seleccionar tamaño",
+    val selectedSizeValue: String = "",
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     val photoBase64: String = "",
@@ -105,6 +115,31 @@ fun ReportFormContent(
     val context = LocalContext.current
     val formattedLatitude = "%.4f".format(state.latitude)
     val formattedLongitude = "%.4f".format(state.longitude)
+
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    if (showDatePicker) {
+        val calendar = Calendar.getInstance()
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                val selectedDate = String.format(
+                    "%04d-%02d-%02d",
+                    year,
+                    month + 1,
+                    dayOfMonth
+                )
+                onStateChange(state.copy(eventDate = selectedDate))
+                showDatePicker = false
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        ).also { dialog ->
+            dialog.datePicker.maxDate = System.currentTimeMillis()
+            dialog.show()
+        }
+    }
 
     Surface(
         modifier = Modifier
@@ -217,16 +252,40 @@ fun ReportFormContent(
                 },
             )
 
-            OutlinedTextField(
-                value = state.eventDate,
-                onValueChange = { onStateChange(state.copy(eventDate = it)) },
-                label = { Text("Fecha del evento") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                leadingIcon = {
-                    Icon(Icons.Default.DateRange, contentDescription = null)
-                },
-            )
+            Column {
+                Text(
+                    "Fecha del evento",
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(Modifier.height(6.dp))
+                OutlinedButton(
+                    onClick = { showDatePicker = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    border = BorderStroke(1.dp, 
+                        if (state.eventDate.isNotEmpty()) Color(0xFF4A9B8E) 
+                        else Color.LightGray
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = if (state.eventDate.isNotEmpty()) 
+                            Color(0xFF2D6A5F) 
+                        else Color.Gray
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.DateRange,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (state.eventDate.isNotEmpty()) state.eventDate 
+                        else "Seleccionar fecha",
+                        fontSize = 15.sp
+                    )
+                }
+            }
 
             if (!contactName.isNullOrBlank() || !contactPhone.isNullOrBlank()) {
                 Card(
@@ -262,26 +321,15 @@ fun ReportFormContent(
                     }
                 } else {
                     if (photoUri != null) {
-                        val bitmap = remember(photoUri) {
-                            try {
-                                context.contentResolver.openInputStream(photoUri)?.use { stream ->
-                                    BitmapFactory.decodeStream(stream)?.asImageBitmap()
-                                }
-                            } catch (_: Exception) {
-                                null
-                            }
-                        }
-                        bitmap?.let {
-                            Image(
-                                bitmap = it,
-                                contentDescription = "Foto seleccionada",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(180.dp)
-                                    .clip(RoundedCornerShape(12.dp)),
-                                contentScale = ContentScale.Crop,
-                            )
-                        }
+                        AsyncImage(
+                            model = photoUri,
+                            contentDescription = "Foto seleccionada",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp)
+                                .clip(RoundedCornerShape(12.dp)),
+                            contentScale = ContentScale.Crop,
+                        )
                     } else if (!state.existingPhotoUrl.isNullOrBlank()) {
                         Box(
                             modifier = Modifier

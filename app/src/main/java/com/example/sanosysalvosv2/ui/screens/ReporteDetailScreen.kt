@@ -1,5 +1,9 @@
 package com.example.sanosysalvosv2.ui.screens
 
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,29 +23,33 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import com.example.sanosysalvosv2.viewmodel.UserReportsUiState
-import com.example.sanosysalvosv2.viewmodel.UserReportsViewModel
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.sanosysalvosv2.model.ReportTypeMapper
 import com.example.sanosysalvosv2.ui.theme.Borders
 import com.example.sanosysalvosv2.ui.theme.TextAccent
 import com.example.sanosysalvosv2.ui.theme.TextSecondary
+import com.example.sanosysalvosv2.util.TranslationUtils
+import com.example.sanosysalvosv2.viewmodel.UserReportsUiState
+import com.example.sanosysalvosv2.viewmodel.UserReportsViewModel
 
 private enum class ReporteStatus { PENDIENTE, RESUELTO, RECHAZADO }
 private enum class ReportePetStatus { PERDIDA, ENCONTRADA }
@@ -114,7 +122,7 @@ fun ReporteDetailScreen(
 
     val reporte = selectedReport ?: return
     val isResolved = reporte.status?.equals("RESOLVED", ignoreCase = true) == true
-    val reportTypeText = ReportTypeMapper.dbToDisplay(reporte.type)
+    val reportTypeText = TranslationUtils.reportType(reporte.type)
 
     Column(
         modifier = Modifier
@@ -159,18 +167,41 @@ fun ReporteDetailScreen(
                 .height(200.dp)
                 .padding(horizontal = 16.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFFEDEDED), RoundedCornerShape(14.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Pets,
-                    contentDescription = "Foto",
-                    tint = TextSecondary,
-                    modifier = Modifier.size(72.dp),
+            val photoBitmap = remember(reporte.photoBase64) {
+                reporte.photoBase64?.let { rawPhoto ->
+                    try {
+                        val base64 = rawPhoto.substringAfter("base64,", rawPhoto)
+                        val bytes = Base64.decode(base64, Base64.NO_WRAP)
+                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+            }
+
+            if (photoBitmap != null) {
+                Image(
+                    bitmap = photoBitmap.asImageBitmap(),
+                    contentDescription = "Foto del reporte",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(14.dp)),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                 )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFFEDEDED), RoundedCornerShape(14.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Pets,
+                        contentDescription = "Foto",
+                        tint = TextSecondary,
+                        modifier = Modifier.size(72.dp),
+                    )
+                }
             }
 
             Box(
@@ -195,8 +226,14 @@ fun ReporteDetailScreen(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
+            val petDisplayName = if (reporte.species != null) {
+                "${TranslationUtils.species(reporte.species)}${if (!reporte.breed.isNullOrBlank()) " (${reporte.breed})" else ""}"
+            } else {
+                (reporte.breed ?: reporte.locationName).orEmpty().ifBlank { "Reporte sin nombre" }
+            }
+
             Text(
-                text = (reporte.species ?: reporte.breed ?: reporte.locationName).orEmpty().ifBlank { "Reporte sin nombre" },
+                text = petDisplayName,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
             )
@@ -218,7 +255,7 @@ fun ReporteDetailScreen(
             ) {
                 ReporteInfoRow("ID del reporte", reporte.id)
                 ReporteInfoRow("Tipo", reportTypeText)
-                ReporteInfoRow("Estado", reporte.status.orEmpty().ifBlank { "Pendiente" })
+                ReporteInfoRow("Estado", TranslationUtils.reportStatus(reporte.status))
                 ReporteInfoRow("Reportado por", reporte.reporterId.orEmpty().ifBlank { "Desconocido" })
                 ReporteInfoRow("Comuna", reporte.locationName.orEmpty().ifBlank { "No disponible" })
                 ReporteInfoRow("Fecha", (reporte.eventDate ?: reporte.createdAt).orEmpty().ifBlank { "No disponible" })

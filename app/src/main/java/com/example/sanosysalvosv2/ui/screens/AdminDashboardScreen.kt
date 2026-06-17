@@ -22,23 +22,61 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.sanosysalvosv2.viewmodel.AdminViewModel
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.sanosysalvosv2.viewmodel.AdminDashboardNewViewModel
+import com.example.sanosysalvosv2.viewmodel.LoadingState
+import com.example.sanosysalvosv2.data.session.SessionStore
+import com.example.sanosysalvosv2.data.repository.AdminStatsRepository
 
 private val DashboardGreen = Color(0xFF0E5B3D)
 private val DashboardTeal = Color(0xFF0F8A8A)
 private val DashboardBorder = Color(0xFFD7E5E3)
 private val DashboardMuted = Color(0xFF7A7A7A)
 
+class AdminDashboardNewViewModelFactory(
+    private val context: android.content.Context
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(AdminDashboardNewViewModel::class.java)) {
+            return AdminDashboardNewViewModel(
+                sessionStore = SessionStore(context),
+                statsRepo = AdminStatsRepository()
+            ) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+    }
+}
+
 @Composable
 fun AdminDashboardScreen(
-    adminViewModel: AdminViewModel,
     onLogout: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val dashboardViewModel: AdminDashboardNewViewModel = viewModel(
+        factory = AdminDashboardNewViewModelFactory(context.applicationContext)
+    )
+
+    LaunchedEffect(Unit) {
+        dashboardViewModel.loadDashboard()
+    }
+
+    val dashboardStats by dashboardViewModel.dashboardStats.collectAsState()
+    val recoveryStats by dashboardViewModel.recoveryStats.collectAsState()
+    val reportsByCommune by dashboardViewModel.reportsByCommune.collectAsState()
+    val loadingState by dashboardViewModel.loadingState.collectAsState()
+
     Scaffold(
         topBar = { AdminDashboardTopBar(onLogout = onLogout) },
     ) { innerPadding ->
@@ -61,20 +99,51 @@ fun AdminDashboardScreen(
                 color = DashboardMuted,
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                MetricCard("Usuarios activos", "1.248", Modifier.weight(1f))
-                MetricCard("Reportes abiertos", "94", Modifier.weight(1f))
-            }
+            when (loadingState) {
+                is LoadingState.Loading -> {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text("Cargando panel...")
+                    }
+                }
+                is LoadingState.Error -> {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text("Error: ${(loadingState as LoadingState.Error).message}", color = Color.Red)
+                    }
+                }
+                else -> {
+                    // Stats grid
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        MetricCard(
+                            "Usuarios activos",
+                            dashboardStats?.activeUsers?.toString() ?: "0",
+                            Modifier.weight(1f),
+                        )
+                        MetricCard(
+                            "Reportes abiertos",
+                            dashboardStats?.openReports?.toString() ?: "0",
+                            Modifier.weight(1f)
+                        )
+                    }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                MetricCard("Coincidencias hoy", "27", Modifier.weight(1f))
-                MetricCard("Entidades", "42", Modifier.weight(1f))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        MetricCard(
+                            "Coincidencias hoy",
+                            dashboardStats?.matchesThisWeek?.toString() ?: "0",
+                            Modifier.weight(1f)
+                        )
+                        MetricCard(
+                            "Entidades",
+                            dashboardStats?.totalEntidades?.toString() ?: "0",
+                            Modifier.weight(1f)
+                        )
+                    }
+                }
             }
 
             Card(
@@ -92,21 +161,38 @@ fun AdminDashboardScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
-                    SimpleBar("Lun", 0.45f)
-                    SimpleBar("Mar", 0.62f)
-                    SimpleBar("Mié", 0.58f)
-                    SimpleBar("Jue", 0.71f)
-                    SimpleBar("Vie", 0.81f)
-                    SimpleBar("Sáb", 0.39f)
-                    SimpleBar("Dom", 0.33f)
+                    val dayNames = listOf("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom")
+                    val weeklyMap = dashboardStats?.let { it.reportsThisWeek to it.matchesThisWeek }
+                    val maxActivity = 1
+                    dayNames.forEach { day ->
+                        // Use placeholder per-day values from dashboardRepo weeklyActivity if available
+                        SimpleBar(day, 0f)
+                    }
                 }
             }
 
-            if (adminViewModel.loading) {
-                Text(text = "Cargando datos...", color = DashboardMuted)
+            // Recovery stats
+            recoveryStats?.let { rec ->
+                Column {
+                    Text("Estadísticas de recuperación", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        MetricCard("Tasa de recuperación", "${rec.recoveryRate.toInt()}%", Modifier.weight(1f))
+                        MetricCard("Tiempo promedio", "${rec.averageTimeInDays} días", Modifier.weight(1f))
+                    }
+                }
             }
-            adminViewModel.error?.let { message ->
-                Text(text = message, color = Color(0xFFC53B3B))
+
+            // Reports by commune
+            if (reportsByCommune.isNotEmpty()) {
+                Column {
+                    Text("Reportes por comuna", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    reportsByCommune.forEach { commune ->
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(commune.communeName)
+                            Text(commune.count.toString(), fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
         }
     }

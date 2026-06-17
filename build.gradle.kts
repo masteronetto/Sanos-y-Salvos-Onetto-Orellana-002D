@@ -5,11 +5,14 @@ import java.net.Socket
 plugins {
     id("com.android.application") version "9.2.1" apply false
     id("org.jetbrains.kotlin.plugin.compose") version "2.2.10" apply false
+    id("com.google.dagger.hilt.android") version "2.51" apply false
     id("org.springframework.boot") version "3.4.5" apply false
     id("io.spring.dependency-management") version "1.1.6" apply false
     id("com.google.gms.google-services") version "4.4.4" apply false
     id("org.sonarqube") version "4.4.1.3373"
     kotlin("jvm") version "2.1.10" apply false
+    id("org.jetbrains.kotlin.android") version "2.1.10" apply false
+    id("org.jetbrains.kotlin.kapt") version "2.1.10" apply false
     kotlin("plugin.spring") version "2.1.10" apply false
 
 }

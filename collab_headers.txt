@@ -1,0 +1,24 @@
+HTTP/1.1 200 OK
+Date: Tue, 16 Jun 2026 23:16:44 GMT
+Content-Type: application/json; charset=UTF-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+Vary: Accept-Encoding
+Accept-Ranges: none
+X-App: miss
+X-XSS-Protection: 1; mode=block
+Cache-Control: private, no-cache, no-store, must-revalidate
+Pragma: no-cache
+Expires: Sat, 18 Jun 2016 23:16:44 GMT
+X-Content-Type-Options: nosniff
+X-Frame-Options: deny
+Access-Control-Allow-Origin: 
+Access-Control-Allow-Methods: GET, POST, DELETE, PUT, PATCH, OPTIONS, HEAD
+Access-Control-Allow-Headers: *
+Access-Control-Allow-Credentials: true
+Access-Control-Max-Age: 86400
+X-Trace-ID: 1fb99ec8-dbd9-4d66-b597-9c90c4544137
+X-Workspace: hit
+Strict-Transport-Security: max-age=31536000; includeSubDomains; 
+
+{"itemsReceived":8,"curPage":1,"nextPage":null,"prevPage":null,"offset":0,"perPage":1000,"items":[{"id":"52235a10-cf90-4c57-9ce8-2c69a40137cd","name":"Clínica San Antón","type":"VETERINARY_CLINIC","address":"","phone":"","email":"","latitude":0,"longitude":0,"status":"ACTIVE","description":"","photoUrl":"","createdAt":1777766275144,"updatedAt":0,"uid":"C003"},{"id":"20596699-7d02-43b4-96c8-dd0b39f59649","name":"Clínica Veterinaria PetCare Maipú","type":"VETERINARIA","address":"Av. Pajaritos 3550, Maipú","phone":"","email":"","latitude":-33.5121,"longitude":-70.7698,"status":"ACTIVE","description":"","photoUrl":"","createdAt":1781571686985,"updatedAt":1781571686985,"uid":"C008"},{"id":"53fd2e56-4862-4562-b79a-2d98d700f780","name":"Voluntariado petfind","type":"VOLUNTEER","address":"","phone":"","email":"","latitude":0,"longitude":0,"status":"ACTIVE","description":"","photoUrl":"","createdAt":1781311607318,"updatedAt":1781311781710,"uid":"C007"},{"id":"611d508e-cbe4-4135-a367-09056bc9c1bd","name":"Clínica Veterinaria PetCare Maipú","type":"VETERINARIA","address":"Av. Pajaritos 3550, Maipú","phone":"+56912345678","email":"contacto@petcaremaipu.cl","latitude":-33.5121,"longitude":-70.7698,"status":"ACTIVE","description":"Clínica veterinaria con atención de urgencias","photoUrl":"","createdAt":1781571706771,"updatedAt":1781571706771,"uid":"C009"},{"id":"fff123a5-7d78-472f-b3d0-6b3573366be5","name":"Refugio Municipal Maipú","type":"REFUGIO","address":"Av. 5 de Abril 1600, Maipú","phone":"+56222345678","email":"refugio@maipu.cl","latitude":-33.5234,"longitude":-70.7812,"status":"ACTIVE","description":"Refugio municipal de animales abandonados","photoUrl":"","createdAt":1781571717745,"updatedAt":1781571717745,"uid":"C010"},{"id":"ac5024fc-00b0-41cd-a38f-63507d9890a5","name":"Municipalidad de Maipú","type":"MUNICIPALIDAD","address":"Av. 5 de Abril 1200, Maipú","phone":"+56225315000","email":"contacto@maipu.cl","latitude":-33.5198,"longitude":-70.7756,"status":"ACTIVE","description":"Oficina de tenencia responsable de mascotas","photoUrl":"","createdAt":1781571726914,"updatedAt":1781571726914,"uid":"C011"},{"id":"a2a12b8a-b864-40b5-ad96-4b3ca5474cf0","name":"ONG Patitas Maipú","type":"ONG","address":"Carmen Sylva 890, Maipú","phone":"+56987654321","email":"patitas@ongmaipu.cl","latitude":-33.5089,"longitude":-70.7634,"status":"ACTIVE","description":"Organización de rescate y adopción de mascotas","photoUrl":"","createdAt":1781571739491,"updatedAt":1781571739491,"uid":"C012"},{"id":"e79f6a90-5963-4310-bfe9-61fc81898f52","name":"Veterinaria San Francisco","type":"VETERINARIA","address":"Av. Américo Vespucio 1320, Maipú","phone":"+56934567890","email":"vet@sanfranciscomaipu.cl","latitude":-33.5067,"longitude":-70.7891,"status":"ACTIVE","description":"Veterinaria con servicio de chip y vacunas","photoUrl":"","createdAt":1781571748011,"updatedAt":1781571748011,"uid":"C013"}]}
