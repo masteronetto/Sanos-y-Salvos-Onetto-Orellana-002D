@@ -189,8 +189,6 @@ docker compose logs -f user-service
 - Perfil de usuario con consulta y actualización de datos.
 - Gestión de mascotas: listar, ver detalle, crear, editar y eliminar.
 - Reportes de usuario: listar, crear, editar y ver detalle.
-- Sección admin completa con dashboard, usuarios, mascotas, reportes, coincidencias, entidades y estadísticas.
-- Notificaciones push con Firebase Messaging.
 - Navegación separada para usuarios y administradores.
 
 ### Estado actual de desarrollo
@@ -205,7 +203,8 @@ docker compose logs -f user-service
 - Mejorar el detalle de colaboradores / contacto directo.
 - Consolidar la documentación de configuración entre Xano y BFF.
 - Mantener el código limpio eliminando rutas BFF inactivas si el enfoque final es Xano directo.
-
+- Sección admin completa con dashboard, usuarios, mascotas, reportes, coincidencias, entidades y estadísticas.
+- Notificaciones push con Firebase Messaging.
 ---
 
 Última actualización: 2026-06-17
