@@ -1,37 +1,45 @@
 # Sanos y Salvos V2
 
-Aplicación con arquitectura de microservicios (Kotlin + Spring Boot) y cliente Android (Jetpack Compose).
+Repositorio híbrido con cliente Android (Jetpack Compose) y servicios backend en Kotlin/Spring Boot.
 
-El cliente Android consume directamente la API de Xano (x8ki-letl-twmt.n7.xano.io) eliminando la necesidad de infraestructura de tuneles.
+El cliente Android consume directamente la API de Xano (`https://x8ki-letl-twmt.n7.xano.io/`), lo que reduce la necesidad de infraestructura de túneles en desarrollo.
 
 ## Estado Actual
 
 ### Backend API
 
-El proyecto ahora usa **Xano** como backend API centralizado:
+El proyecto usa **Xano** como backend API centralizado desde Android y desde la mayoría de los servicios de backend.
 - Endpoint base: `https://x8ki-letl-twmt.n7.xano.io/`
-- Endpoints disponibles:
-  - Auth: `/api:sanos-y-salvos-auth/{login|register}`
-  - Users: `/api:sanos-y-salvos-users/list`
-  - Maps: `/api:maps/{provider|layers|reports/nearby}`
+- Rutas activas en Android:
+  - Auth: `/api:sanos-y-salvos-auth/login`, `/api:sanos-y-salvos-auth/register`, `/api:sanos-y-salvos-auth/me`, `/api:sanos-y-salvos-auth/logout`
+  - Usuarios/Perfil: `/api:sanos-y-salvos-users/...`
+  - Mascotas: `/api:sanos-y-salvos-pets/...`
+  - Reportes: `/api:sanos-y-salvos-reports/...`
+  - Mapas: `/api:maps/reports/nearby`
+  - Coincidencias: `/api:sanos-y-salvos-matches/...`
 
 ### Android Client
 
-- Build compilado exitosamente con rutas Xano correctas
-- Cliente Android consume directamente endpoints Xano (sin BFF intermediario)
-- Retrofit configurado con rutas HTTP válidas (`/api:sanos-y-salvos-auth/...`)
-- AuthRepository con mapeo flexible para respuestas Xano
-- Listo para pruebas en celular físico desde Android Studio
+- Login y registro funcionan contra Xano.
+- Pantalla de mapas con reportes cercanos cargados desde Xano.
+- Perfil de usuario soporta lectura y edición de datos via Xano.
+- Gestión de mascotas: listado, detalle, creación, edición y eliminación.
+- Reportes de usuario: listado, detalle, creación y edición.
+- Navegación de usuario y admin disponible en la app.
+- Retrofit configurado con `BuildConfig.XANO_BASE_URL` para llamadas directas a Xano.
 
 ### Backend Local (Opcional)
 
-Los servicios locales en Docker Compose están disponibles pero NO son requeridos para funcionar el cliente Android. Se usan solo para desarrollo backend:
-- bff-service: 8080
-- user-service: 8081
-- pet-service: 8082
-- geoservice: 8083
-- match-service: 8084
-- rabbitmq: 5672, 15672
+El stack local con Docker Compose está disponible para desarrollo backend y para el BFF.
+- El cliente Android en dispositivo físico no lo requiere para flujos de usuario básicos.
+- El BFF local se usa principalmente para rutas de administración y pruebas desde emulador/local.
+- Servicios locales opcionales:
+  - bff-service: 8080
+  - user-service: 8081
+  - pet-service: 8082
+  - geoservice: 8083
+  - match-service: 8084
+  - rabbitmq: 5672, 15672
 
 ## Arquitectura
 
@@ -117,6 +125,7 @@ Instalar en dispositivo:
 
 ```powershell
 adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
 
 ## Troubleshooting
 
@@ -171,84 +180,33 @@ docker compose logs -f user-service
 .\gradlew --stop
 ```
 
-## Pendiente por Hacer
+## Estado de Implementación
 
-### Testing & Validación
+### Funcionalidad ya implementada
 
-- [ ] **Pruebas funcionales en celular físico desde Android Studio**
-  - [ ] Flujo de login exitoso con Xano
-  - [ ] Acceso a panel admin
-  - [ ] Carga de mapa y datos de ubicación
-  - [ ] Validar campos de respuesta Xano (token, userId, role)
-  
-- [ ] **Validar formato de respuesta Xano**
-  - [ ] Asegurar que AuthRepository.mapToAuthResponse() maneja todos los casos
-  - [ ] Verificar parsing de `/api:sanos-y-salvos-auth/login` response
-  - [ ] Revisar campos adicionales que pueda retornar Xano (collaboratorType, etc)
+- Autenticación y registro en Xano.
+- Pantalla de mapas con reportes cercanos y marcadores Xano.
+- Perfil de usuario con consulta y actualización de datos.
+- Gestión de mascotas: listar, ver detalle, crear, editar y eliminar.
+- Reportes de usuario: listar, crear, editar y ver detalle.
+- Sección admin completa con dashboard, usuarios, mascotas, reportes, coincidencias, entidades y estadísticas.
+- Notificaciones push con Firebase Messaging.
+- Navegación separada para usuarios y administradores.
 
-### Features Faltantes
+### Estado actual de desarrollo
 
-- [ ] **Pantalla de Maps completa**
-  - [ ] Mostrar provider (Mapbox/Google)
-  - [ ] Cargar capas de mapa
-  - [ ] Mostrar reportes cercanos con ubicación usuario
-  
-- [ ] **Pantalla de Registro**
-  - [ ] Implementar flujo de `/api:sanos-y-salvos-auth/register`
-  - [ ] Validaciones de formulario (email, password strength)
-  - [ ] Manejo de errores de registro duplicado
+- La app Android está orientada a uso directo con Xano en dispositivo físico y emulador.
+- El BFF local permanece disponible para administración y pruebas locales, pero no es obligatorio para los flujos de usuario básicos.
+- Se conservan rutas y servicios backend locales para evaluación y desarrollo complementario.
 
-- [ ] **Integración de Mascotas & Reportes**
-  - [ ] Pantalla de "Mis Mascotas" (llamar a Xano pets endpoint)
-  - [ ] Crear reporte de mascota perdida
-  - [ ] Mostrar reportes activos/resueltos
+### Siguientes pasos y mejoras
 
-- [ ] **Mensajería/Chat**
-  - [ ] Implementar pantalla de mensajes
-  - [ ] Integración con endpoint de mensajes Xano
-  
-- [ ] **User Profile**
-  - [ ] Pantalla de perfil de usuario
-  - [ ] Editar información personal
-  - [ ] Foto de perfil
-
-### Backend
-
-- [ ] **Sincronización BFF-Xano (Opcional)**
-  - Si se desea mantener BFF como cache/wrapper, sincronizar endpoints con Xano
-  - Actualmente Android llama directo a Xano (recomendado para MVP)
-
-- [ ] **Integración RabbitMQ**
-  - [ ] Verificar flujos de evento entre servicios
-  - [ ] Pruebas de integración end-to-end
-
-### DevOps & Deployment
-
-- [ ] **Configurar CI/CD**
-  - [ ] Pipeline de build Android en CI
-  - [ ] Automatic testing en pull requests
-  
-- [ ] **Documentar Xano API Contract**
-  - [ ] Guía de endpoints Xano disponibles
-  - [ ] Formato de requests/responses esperados
-  - [ ] Credenciales y acceso a workspace Xano
-  
-- [ ] **Preparar deployment**
-  - [ ] Configurar release build (ProGuard rules)
-  - [ ] Signing de APK para Google Play (si aplica)
-
-### Limpieza Técnica
-
-- [ ] **Remover código no usado**
-  - RetrofitClient.kt (deprecated)
-  - NetworkConfig.kt (deprecated)
-  - Referencias a BFF si Android no las usa
-
-- [ ] **Consolidar configuración**
-  - Centralizar base URLs (gradle.properties vs BuildConfig)
-  - Documentar dónde vive configuración por environment (dev/staging/prod)
+- Refinar acciones de contacto en la pantalla de coincidencias.
+- Mejorar el detalle de colaboradores / contacto directo.
+- Consolidar la documentación de configuración entre Xano y BFF.
+- Mantener el código limpio eliminando rutas BFF inactivas si el enfoque final es Xano directo.
 
 ---
 
-Última actualización: 2026-06-04
+Última actualización: 2026-06-17
 
